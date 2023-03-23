@@ -1,5 +1,5 @@
 {
-    "name": "lin/app-php",
+    "name": "aaron-lin/app-php",
     "type": "library",
     "description": "A PHP framework for web app.",
     "license": "MIT",
