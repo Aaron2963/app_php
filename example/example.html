@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="keywords" content="" />
+        <meta name="description" content="" />
+        <title>Single Page App Example</title>
+    </head>
+    <body>
+        <h1>Single Page App Example</h1>
+        <form method="post">
+            <input type="text" name="action" value="check-login" hidden />
+            <button id="submit-check-login" type="submit">Check Login</button>
+        </form>
+        <br />
+        <form method="post">
+            <input type="text" name="action" value="greet" hidden />
+            <button id="submit-greet" type="submit">Greet</button>
+        </form>
+        <br />
+        <form method="post">
+            <input type="text" name="action" value="message" hidden />
+            <input type="text" name="message" />
+            <button id="submit-message" type="submit">Show Message</button>
+        </form>
+        <hr />
+        <div id="response"></div>
+        <script>
+            const response = document.getElementById('response');
+            document.getElementById('submit-greet').addEventListener('click', (e) => {
+                e.preventDefault();
+                fetch('./single_page_app.php', {
+                    method: 'POST',
+                    body: new FormData(e.target.form)
+                }).then((res) => res.json()).then((data) => response.innerHTML = data.message);
+            });
+            document.getElementById('submit-message').addEventListener('click', (e) => {
+                e.preventDefault();
+                fetch('./single_page_app.php', {
+                    method: 'POST',
+                    body: new FormData(e.target.form)
+                }).then((res) => res.json()).then((data) => response.innerHTML = data.message);
+            });
+        </script>
+    </body>
+</html>
