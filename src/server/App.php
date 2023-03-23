@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Server;
+namespace Lin\AppPhp\Server;
 
 use \Nyholm\Psr7\Factory\Psr17Factory;
 

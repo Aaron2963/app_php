@@ -1,14 +1,14 @@
 {
-    "name": "aaron/app_php",
+    "name": "lin/app-php",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Aaron\\AppPhp\\": "src/"
+            "Lin\\AppPhp\\": "src/"
         }
     },
     "authors": [
         {
-            "name": "Aaron2963",
+            "name": "Aaron Lin",
             "email": "neotgrr@gmail.com"
         }
     ],

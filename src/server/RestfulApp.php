@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Server;
+namespace Lin\AppPhp\Server;
 
 class RestfulApp extends App
 {

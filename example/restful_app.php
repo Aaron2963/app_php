@@ -4,8 +4,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/server/App.php';
 require_once __DIR__ . '/../src/server/RestfulApp.php';
 
-use App\Server\App;
-use App\Server\RestfulApp;
+use Lin\AppPhp\Server\App;
+use Lin\AppPhp\Server\RestfulApp;
 
 // 創建 RestfulApp 的子類別
 class User extends RestfulApp
