@@ -1,6 +1,7 @@
 {
     "name": "lin/app-php",
     "type": "library",
+    "description": "A PHP framework for web app.",
     "autoload": {
         "psr-4": {
             "Lin\\AppPhp\\": "src/"
