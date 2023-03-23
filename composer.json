@@ -1,9 +1,9 @@
 {
-    "name": "aaron/single_page_app_php",
+    "name": "aaron/app_php",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Aaron\\SinglePageAppPhp\\": "src/"
+            "Aaron\\AppPhp\\": "src/"
         }
     },
     "authors": [

@@ -4,8 +4,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/server/App.php';
 require_once __DIR__ . '/../src/server/SinglePageApp.php';
 
-use Aaron\SPA\Server\App;
-use Aaron\SPA\Server\SinglePageApp;
+use App\Server\App;
+use App\Server\SinglePageApp;
 
 // 創建 SinglePageApp 的實例
 $App = new SinglePageApp(file_get_contents('example.html'));

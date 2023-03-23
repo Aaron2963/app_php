@@ -1,6 +1,6 @@
 <?php
 
-namespace Aaron\SPA\Server;
+namespace App\Server;
 
 use \Nyholm\Psr7\Factory\Psr17Factory;
 
