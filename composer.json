@@ -2,6 +2,7 @@
     "name": "lin/app-php",
     "type": "library",
     "description": "A PHP framework for web app.",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Lin\\AppPhp\\": "src/"
@@ -14,6 +15,7 @@
         }
     ],
     "require": {
+        "php": ">=7.4",
         "nyholm/psr7": "^1.5"
     }
 }
