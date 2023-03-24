@@ -28,6 +28,13 @@ abstract class App
     protected $Psr17Factory = null;
 
     /**
+     * Authorization mechanism
+     *
+     * @var \Lin\AppPhp\Authorization\AuthorizationInterface
+     */
+    protected $Authorization = null;
+
+    /**
      * Error
      *
      * @var \Exception
@@ -68,6 +75,42 @@ abstract class App
      * 
      */
     abstract public function HandleRequest($ServerRequest);
+
+    /**
+     * Set Authorization
+     *
+     * @param \Lin\AppPhp\Authorization\AuthorizationInterface $Authorization
+     * 
+     * @return self
+     * 
+     */
+    public function WithAuthorization($Authorization)
+    {
+        $this->Authorization = $Authorization;
+        return $this;
+    }
+
+    /**
+     * Authorize Server Request
+     *
+     * @return bool 
+     * 
+     */
+    public function AuthorizeRequest()
+    {
+        if ($this->Authorization == null) {
+            return true;
+        }
+        $Token = $this->ServerRequest->getHeader('Authorization');
+        if (count($Token) == 0) {
+            return false;
+        }
+        $Token = explode(' ', $Token[0]);
+        if (count($Token) != 2) {
+            return false;
+        }
+        return $this->Authorization->Authorize(array_pop($Token));
+    }
 
     /**
      * Get ServerRequest
@@ -145,7 +188,7 @@ abstract class App
      * @return \Psr\Http\Message\ResponseInterface
      * 
      */
-    public static function UnautorizedResponse()
+    public static function UnauthorizedResponse()
     {
         $Psr17Factory = new Psr17Factory();
         $Response = $Psr17Factory->createResponse(401);

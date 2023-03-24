@@ -6,16 +6,26 @@ require_once __DIR__ . '/../src/server/SinglePageApp.php';
 
 use Lin\AppPhp\Server\App;
 use Lin\AppPhp\Server\SinglePageApp;
+use \Lin\AppPhp\Authorization\AuthorizationInterface;
+
+// 實作 AuthorizationInterface
+class Authorization implements AuthorizationInterface
+{
+    public function Authorize($Token)
+    {
+        return true;
+    }
+}
 
 // 創建 SinglePageApp 的實例
 $App = new SinglePageApp(file_get_contents('example.html'));
+$App->WithAuthorization(new Authorization());
 $App->AddPostAction('check-login', function ($ServerRequest) {
     return App::NoContentResponse();
-});
-$App->AddPostAction('greet', function ($ServerRequest) {
+})->AddPostAction('greet', function ($ServerRequest) {
     return App::JsonResponse(['message' => 'Hello World!']);
-});
-$App->AddPostAction('message', function ($ServerRequest) {
+})->AddPostAction('message', function ($ServerRequest) use ($App) {
+    if (!$App->AuthorizeRequest()) return App::UnauthorizedResponse();
     $Message = $ServerRequest->getParsedBody()['message'];
     return App::JsonResponse(['message' => $Message]);
 });

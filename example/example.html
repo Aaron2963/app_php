@@ -40,7 +40,8 @@
                 e.preventDefault();
                 fetch('./single_page_app.php', {
                     method: 'POST',
-                    body: new FormData(e.target.form)
+                    body: new FormData(e.target.form),
+                    headers: { Authorization: 'Bearer 1234567890' },
                 }).then((res) => res.json()).then((data) => response.innerHTML = data.message);
             });
         </script>

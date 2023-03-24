@@ -6,6 +6,7 @@ require_once __DIR__ . '/../src/server/RestfulApp.php';
 
 use Lin\AppPhp\Server\App;
 use Lin\AppPhp\Server\RestfulApp;
+use \Lin\AppPhp\Authorization\AuthorizationInterface;
 
 // 創建 RestfulApp 的子類別
 class User extends RestfulApp
@@ -17,8 +18,17 @@ class User extends RestfulApp
     }
 }
 
+// 實作 AuthorizationInterface
+class Authorization implements AuthorizationInterface
+{
+    public function Authorize($Token)
+    {
+        return true;
+    }
+}
+
 // 處理請求
 $App = new User();
-$App->HandleRequest(App::CreateServerRequest());
+$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
 $App->SendResponse();
 exit();
