@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-$ composer install lin/app-php
+$ composer require lin/app-php
 ```
 
 ## Usage
