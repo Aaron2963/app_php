@@ -8,7 +8,7 @@ $ composer require aaron-lin/app-php
 
 ## Usage
 
-There are three types of supported PHP applications: RESTful App, CRUD App and Single Page App.
+There are three types of supported PHP applications: **RESTful App**, **CRUD App** and **Single Page App**.
 
 
 ### RESTful App

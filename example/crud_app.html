@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <title>CRUD App</title>
+</head>
+<body>
+    <h1>CRUD App</h1>
+    <form method="post" action="./crud_app.select.php">
+        <input id="submit" type="submit" value="Select" />
+    </form>
+    <div id="response"></div>
+    <script>
+        const response = document.getElementById("response");
+        document.getElementById("submit").addEventListener("click", function(event) {
+            event.preventDefault();
+            fetch("./crud_app.select.php", {
+                method: "POST"
+            }).then(res => res.json()).then(json => response.innerHTML = JSON.stringify(json));
+        });
+    </script>
+</body>
+</html>
