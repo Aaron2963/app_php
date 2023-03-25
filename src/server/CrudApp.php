@@ -29,6 +29,7 @@ class CrudApp extends App
         // 處理請求
         switch ($Method) {
             case 'SELECT':
+                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnRead();
                 break;
             case 'CREATE':
