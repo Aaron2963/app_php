@@ -16,6 +16,7 @@
     ],
     "require": {
         "php": ">=7.4",
-        "nyholm/psr7": "^1.5"
+        "nyholm/psr7": "^1.5",
+        "firebase/php-jwt": "^6.4"
     }
 }
