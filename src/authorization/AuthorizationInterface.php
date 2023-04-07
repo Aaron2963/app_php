@@ -4,5 +4,14 @@ namespace Lin\AppPhp\Authorization;
 
 interface AuthorizationInterface
 {
-    public function Authorize($Token);
+    /**
+     * Authorize token
+     *
+     * @param   string      $Token
+     * @param   string[]    $ResourceScopes
+     * 
+     * @return bool
+     * 
+     */
+    public function Authorize($Token, $ResourceScopes = []);
 }

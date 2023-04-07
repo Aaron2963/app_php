@@ -21,7 +21,7 @@ class User extends RestfulApp
 // 實作 AuthorizationInterface
 class Authorization implements AuthorizationInterface
 {
-    public function Authorize($Token)
+    public function Authorize($Token, $ResourceScopes = [])
     {
         return true;
     }

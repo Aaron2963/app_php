@@ -11,14 +11,14 @@ use \Lin\AppPhp\Authorization\AuthorizationInterface;
 // 實作 AuthorizationInterface
 class Authorization implements AuthorizationInterface
 {
-    public function Authorize($Token)
+    public function Authorize($Token, $ResourceScopes = [])
     {
         return true;
     }
 }
 
 // 創建 SinglePageApp 的實例
-$App = new SinglePageApp(file_get_contents('example.html'));
+$App = new SinglePageApp(file_get_contents('single_page_example.html'));
 $App->WithAuthorization(new Authorization());
 $App->AddPostAction('check-login', function ($ServerRequest) {
     return App::NoContentResponse();
