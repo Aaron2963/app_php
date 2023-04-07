@@ -4,23 +4,62 @@ namespace Lin\AppPhp\Authorization;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Firebase\JWT\SignatureInvalidException;
-use Firebase\JWT\BeforeValidException;
-use Firebase\JWT\ExpiredException;
-use DomainException;
-use InvalidArgumentException;
-use UnexpectedValueException;
 
-class OAuthAuthorization implements AuthorizationInterface
+/**
+ * OAuth authorization
+ * 
+ * This class is used to authorize token with OAuth 2.0, combined with JWT.
+ * Subclass should implement IsTokenRevoked method to check whether token is revoked.
+ * 
+ * @package Lin\AppPhp\Authorization
+ * 
+ */
+abstract class OAuthAuthorization implements AuthorizationInterface
 {
+    /**
+     * Public key uri
+     *
+     * @var string
+     */
     protected $PublicKeyUri;
+
+    /**
+     * Last error
+     *
+     * @var \Exception
+     */
     protected $Error;
+
+    /**
+     * Check whether token is revoked, this method should be implemented by subclass
+     *
+     * @param   string  $JTI
+     * 
+     * @return  bool    return true if token is revoked
+     * 
+     */
+    abstract protected function IsTokenRevoked($JTI);
     
+    /**
+     * OAuthAuthorization constructor
+     *
+     * @param   string  $PublicKeyUri   public key uri
+     * 
+     */
     public function __construct($PublicKeyUri)
     {
         $this->PublicKeyUri = $PublicKeyUri;
     }
     
+    /**
+     * Authorize token
+     *
+     * @param   string      $Token
+     * @param   string[]    $ResourceScopes
+     * 
+     * @return bool
+     * 
+     */
     public function Authorize($Token, $ResourceScopes = [])
     {
         // get public key
@@ -45,12 +84,12 @@ class OAuthAuthorization implements AuthorizationInterface
         return false;
     }
 
-    protected function IsTokenRevoked($JTI)
-    {
-        // TODO: connect to database and check if token is revoked
-        return false;
-    }
-
+    /**
+     * Get error
+     *
+     * @return \Exception
+     * 
+     */
     public function GetError()
     {
         return $this->Error;
