@@ -21,7 +21,7 @@ class CrudApp extends App
         }
         // 檢查授權
         if (!$this->AuthorizeRequest()) {
-            $this->Response = $this->Psr17Factory->createResponse(401);
+            $this->Response = App::UnauthorizedResponse();
             return $this->Response;
         }
         $Path = $this->ServerRequest->getUri()->getPath();

@@ -18,7 +18,7 @@ class RestfulApp extends App
         $this->ServerRequest = $ServerRequest;
         // 檢查授權
         if (!$this->AuthorizeRequest()) {
-            $this->Response = $this->Psr17Factory->createResponse(401);
+            $this->Response = App::UnauthorizedResponse();
             return $this->Response;
         }
         $Method = $ServerRequest->getMethod();
