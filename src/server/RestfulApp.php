@@ -16,6 +16,11 @@ class RestfulApp extends App
     {
         global $_PUT, $_DELETE, $_PATCH;
         $this->ServerRequest = $ServerRequest;
+        // 檢查授權
+        if (!$this->AuthorizeRequest()) {
+            $this->Response = $this->Psr17Factory->createResponse(401);
+            return $this->Response;
+        }
         $Method = $ServerRequest->getMethod();
         // 處理請求
         switch ($Method) {

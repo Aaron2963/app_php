@@ -19,6 +19,11 @@ class CrudApp extends App
             $this->Response = $this->Psr17Factory->createResponse(405);
             return $this->Response;
         }
+        // 檢查授權
+        if (!$this->AuthorizeRequest()) {
+            $this->Response = $this->Psr17Factory->createResponse(401);
+            return $this->Response;
+        }
         $Path = $this->ServerRequest->getUri()->getPath();
         $Path = explode('/', $Path);
         $Resource = array_pop($Path);
