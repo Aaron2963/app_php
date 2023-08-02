@@ -11,8 +11,7 @@ class User extends CrudApp
 {
     public function OnRead()
     {
-        $ResponseBody = $this->Psr17Factory->createStream(json_encode(['name' => 'John Doe']));
-        return $this->Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        return App::JsonResponse(['name' => 'John Doe']);
     }
 }
 

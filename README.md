@@ -20,22 +20,68 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Lin\AppPhp\Server\App;
 use Lin\AppPhp\Server\RestfulApp;
+use Lin\AppPhp\Authorization\AuthorizationInterface;
 
-// create a child class of RestfulApp, and override method `OnGet|OnPost|OnPut|OnDelete|OnPatch`
-class MyRestfulApp extends RestfulApp
+// 實作 AuthorizationInterface
+class Authorization implements AuthorizationInterface
 {
-    public function OnGet($request, $response)
+    public function Authorize($Token, $RequestScopes = [])
     {
-        $ResponseBody = $this->Psr17Factory->createStream(json_encode(['message' => 'Hello World']));
-        return $this->Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        $AvailableScopes = ['user.read', 'user.create'];
+        $AccessScopes = array_intersect($RequestScopes, $AvailableScopes);
+        if (count($RequestScopes) > 0 && count($AccessScopes) === 0) {
+            return false;
+        }
+        return true;
     }
 }
 
-// handle request and send response
-$App = new MyRestfulApp();
-$App->HandleRequest(App::CreateServerRequest());
+// create a class extending RestfulApp, and override method `OnGet|OnPost|OnPut|OnDelete|OnPatch`
+// unoverrided method will return `405 Method Not Allowed` response
+class User extends RestfulApp
+{
+    public function OnGet()
+    {
+        // 檢查權限: 呼叫 AuthorizationInterface::AuthorizeRequest
+        if (!$this->AuthorizeRequest(['user.read'])) {
+            return App::UnauthorizedResponse();
+        }
+        // 回應
+        return App::JsonResponse([
+            [
+                'id' => '1',
+                'name' => 'John Doe'
+            ],
+            [
+                'id' => '2',
+                'name' => 'Jane Doe'
+            ],
+        ]);
+    }
+
+    public function OnPost()
+    {
+        // 檢查權限: 呼叫 App::AuthorizeRequest
+        if (!$this->AuthorizeRequest(['user.create'])) {
+            return App::UnauthorizedResponse();
+        }
+        // 取得請求資料
+        $Data = $this->GetServerRequest()->getParsedBody();
+        if (!isset($Data['name'])) {
+            return App::JsonResponse(['message' => 'name is required'], 400);
+        }
+        // 儲存資料...
+        // 回應
+        return App::NoContentResponse();
+    }
+}
+
+// 處理請求
+$App = new User();
+$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
+$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
 $App->SendResponse();
-exit();
+exit;
 ```
 
 
@@ -53,14 +99,23 @@ class User extends CrudApp
 {
     public function OnRead()
     {
-        $ResponseBody = $this->Psr17Factory->createStream(json_encode(['name' => 'John Doe']));
-        return $this->Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        return App::JsonResponse([
+            [
+                'id' => '1',
+                'name' => 'John Doe'
+            ],
+            [
+                'id' => '2',
+                'name' => 'Jane Doe'
+            ],
+        ]);
     }
 }
 
 // 處理請求
 $App = new User();
 $App->HandleRequest(App::CreateServerRequest());
+$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
 $App->SendResponse();
 exit();
 ```
@@ -83,6 +138,101 @@ $App->AddPostAction('message', function ($ServerRequest) {
 });
 
 $App->HandleRequest(App::CreateServerRequest());
+$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
 $App->SendResponse();
 exit();
+```
+
+
+### Authorization
+
+To implement authorization: 
+1. create a class implementing `Lin\AppPhp\Authorization\AuthorizationInterface` interface, and implement the `Authorize($Token, $RequestScopes = [])` method
+2. pass the instance to `WithAuthorization` method of `Lin\AppPhp\Server\App` class
+3. call `AuthorizeRequest` method of `Lin\AppPhp\Server\App` class to check authorization
+
+```php
+require __DIR__ . '/vendor/autoload.php';
+
+
+use Lin\AppPhp\Server\App;
+use Lin\AppPhp\Server\RestfulApp;
+use Lin\AppPhp\Authorization\AuthorizationInterface;
+
+// 實作 AuthorizationInterface
+class Authorization implements AuthorizationInterface
+{
+    public function Authorize($Token, $RequestScopes = [])
+    {
+        $AvailableScopes = ['user.read', 'user.create'];
+        $AccessScopes = array_intersect($RequestScopes, $AvailableScopes);
+        if (count($RequestScopes) > 0 && count($AccessScopes) === 0) {
+            return false;
+        }
+        return true;
+    }
+}
+
+class User extends RestfulApp
+{
+    public function OnGet()
+    {
+        // 檢查權限: 呼叫 App::AuthorizeRequest
+        if (!$this->AuthorizeRequest(['user.read'])) {
+            return App::UnauthorizedResponse();
+        }
+        // 回應
+        return App::NoContentResponse();
+    }
+}
+
+// 處理請求
+$App = new User();
+$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
+$App->SendResponse();
+exit;
+```
+
+For OAuth2 authorization with JWT, use `Lin\AppPhp\Authorization\OAuthAuthorization` class:
+1. create a class extending `Lin\AppPhp\Authorization\OAuthAuthorization` class, and implement the `IsTokenRevoked($JTI)` method
+2. pass the instance to `WithAuthorization` method of `Lin\AppPhp\Server\App` class
+3. call `AuthorizeRequest` method of `Lin\AppPhp\Server\App` class to check authorization
+
+
+```php
+require __DIR__ . '/vendor/autoload.php';
+
+
+use Lin\AppPhp\Server\App;
+use Lin\AppPhp\Server\RestfulApp;
+use Lin\AppPhp\Authorization\AuthorizationInterface;
+
+// 實作 AuthorizationInterface
+class Authorization extends OAuthAuthorization
+{
+    public function IsTokenRevoked($JTI)
+    {
+        // 檢查 token 是否被撤銷
+        return false;
+    }
+}
+
+class User extends RestfulApp
+{
+    public function OnGet()
+    {
+        // 檢查權限: 呼叫 App::AuthorizeRequest
+        if (!$this->AuthorizeRequest(['user.read'])) {
+            return App::UnauthorizedResponse();
+        }
+        // 回應
+        return App::NoContentResponse();
+    }
+}
+
+// 處理請求
+$App = new User();
+$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
+$App->SendResponse();
+exit;
 ```

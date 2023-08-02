@@ -16,18 +16,17 @@ class RestfulApp extends App
     {
         global $_PUT, $_DELETE, $_PATCH;
         $this->ServerRequest = $ServerRequest;
-        // 檢查授權
-        if (!$this->AuthorizeRequest()) {
-            $this->Response = App::UnauthorizedResponse();
-            return $this->Response;
-        }
         $Method = $ServerRequest->getMethod();
+        foreach (getallheaders() as $Name => $Value) {
+            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
+        }
         // 處理請求
         switch ($Method) {
             case 'GET':
                 $this->Response = $this->OnGet();
                 break;
             case 'POST':
+                $this->ParsePHPInput();
                 $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnPost();
                 break;

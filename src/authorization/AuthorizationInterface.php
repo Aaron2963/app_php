@@ -8,10 +8,10 @@ interface AuthorizationInterface
      * Authorize token
      *
      * @param   string      $Token
-     * @param   string[]    $ResourceScopes
+     * @param   string[]    $RequestScopes
      * 
      * @return bool
      * 
      */
-    public function Authorize($Token, $ResourceScopes = []);
+    public function Authorize($Token, $RequestScopes = []);
 }

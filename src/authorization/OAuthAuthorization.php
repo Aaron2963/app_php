@@ -55,12 +55,12 @@ abstract class OAuthAuthorization implements AuthorizationInterface
      * Authorize token
      *
      * @param   string      $Token
-     * @param   string[]    $ResourceScopes
+     * @param   string[]    $RequestScopes
      * 
      * @return bool
      * 
      */
-    public function Authorize($Token, $ResourceScopes = [])
+    public function Authorize($Token, $RequestScopes = [])
     {
         // get public key
         $PublicKey = file_get_contents($this->PublicKeyUri);
@@ -69,10 +69,10 @@ abstract class OAuthAuthorization implements AuthorizationInterface
             if ($this->IsTokenRevoked($Decoded->jti)) {
                 throw new \Exception('token is revoked');
             }
-            if (empty($ResourceScopes)) {
+            if (empty($RequestScopes)) {
                 return true;
             }
-            foreach ($ResourceScopes as $Scope) {
+            foreach ($RequestScopes as $Scope) {
                 if (in_array($Scope, $Decoded->scopes)) {
                     return true;
                 }

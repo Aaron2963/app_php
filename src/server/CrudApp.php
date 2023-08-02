@@ -19,10 +19,8 @@ class CrudApp extends App
             $this->Response = $this->Psr17Factory->createResponse(405);
             return $this->Response;
         }
-        // 檢查授權
-        if (!$this->AuthorizeRequest()) {
-            $this->Response = App::UnauthorizedResponse();
-            return $this->Response;
+        foreach (getallheaders() as $Name => $Value) {
+            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
         }
         $Path = $this->ServerRequest->getUri()->getPath();
         $Path = explode('/', $Path);
@@ -31,6 +29,7 @@ class CrudApp extends App
         $Method = explode('.', $Resource);
         $Method = array_pop($Method);
         $Method = strtoupper($Method);
+        $this->ParsePHPInput();
         // 處理請求
         switch ($Method) {
             case 'SELECT':

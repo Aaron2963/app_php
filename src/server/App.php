@@ -2,7 +2,7 @@
 
 namespace Lin\AppPhp\Server;
 
-use \Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\Factory\Psr17Factory;
 
 abstract class App
 {
@@ -54,7 +54,7 @@ abstract class App
      *
      * @return \Psr\Http\Message\ServerRequestInterface
      */
-    public static function CreateServerRequest()
+    static public function CreateServerRequest()
     {
         $Headers = [];
         foreach (\getallheaders() as $key => $value) {
@@ -92,11 +92,13 @@ abstract class App
 
     /**
      * Authorize Server Request
+     * 
+     * @param   string[]    $RequestScopes     the scopes of requesting resource
      *
      * @return bool 
      * 
      */
-    public function AuthorizeRequest()
+    public function AuthorizeRequest($RequestScopes = [])
     {
         if ($this->Authorization == null) {
             return true;
@@ -109,7 +111,7 @@ abstract class App
         if (count($Token) != 2) {
             return false;
         }
-        return $this->Authorization->Authorize(array_pop($Token));
+        return $this->Authorization->Authorize(array_pop($Token), $RequestScopes);
     }
 
     /**
@@ -133,41 +135,38 @@ abstract class App
     {
         return $this->Response;
     }
-
+    
     /**
-     * Get parameter from path, eg. get `123` from `/api/user/123`
+     * Add response headers
      *
-     * @return string|false
-     * 
+     * @param  array $Headers
+     * @return void
      */
-    protected function GetPathParameter()
+    public function AddHeaders($Headers)
     {
-        if ($this->ServerRequest == null) {
-            return false;
+        if ($this->Response == null) {
+            throw new \RuntimeException('Response is null when adding headers');
         }
-        $Resource = $this->ServerRequest->getAttribute('resource_name');
-        $Param = $this->ServerRequest->getUri()->getPath();
-        $Reg = '/' . $Resource . '\/(.*)/';
-        preg_match($Reg, $Param, $Matches);
-        if (count($Matches) > 1) {
-            return $Matches[1];
+        foreach ($Headers as $Name => $Value) {
+            $this->Response = $this->Response->withHeader($Name, $Value);
         }
-        return false;
     }
 
     /**
-     * Get `200 OK` response with JSON body
+     * Get response with JSON body
      * 
-     * @param   array   $Array  content of response body
+     * @param   array   $Array      content of response body
+     * @param   int     $StatusCode status code
      *
      * @return \Psr\Http\Message\ResponseInterface
      * 
      */
-    public static function JsonResponse($Array)
+    static public function JsonResponse($Array, $StatusCode = 200)
     {
         $Psr17Factory = new Psr17Factory();
-        $ResponseBody = $Psr17Factory->createStream(json_encode($Array));
-        return $Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        $ResponseBody = $Psr17Factory->createStream(json_encode($Array, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return $Psr17Factory->createResponse($StatusCode)->withBody($ResponseBody)
+            ->withHeader('Content-Type', 'application/json');
     }
 
     /**
@@ -176,7 +175,7 @@ abstract class App
      * @return \Psr\Http\Message\ResponseInterface
      * 
      */
-    public static function NoContentResponse()
+    static public function NoContentResponse()
     {
         $Psr17Factory = new Psr17Factory();
         return $Psr17Factory->createResponse(204);
@@ -188,7 +187,7 @@ abstract class App
      * @return \Psr\Http\Message\ResponseInterface
      * 
      */
-    public static function UnauthorizedResponse()
+    static public function UnauthorizedResponse()
     {
         $Psr17Factory = new Psr17Factory();
         $Response = $Psr17Factory->createResponse(401);
@@ -205,11 +204,39 @@ abstract class App
     protected function ParsePHPInput()
     {
         $Method = $this->ServerRequest->getMethod();
-        $ValidMethods = ['PUT', 'PATCH', 'DELETE'];
+        $ValidMethods = ['PUT', 'PATCH', 'DELETE', 'POST'];
         if (!in_array($Method, $ValidMethods)) {
             return;
         }
+        $ContentType = $this->ServerRequest->getHeader('Content-Type');
+        $ContentType = $ContentType[0] ?? '';
+        if ($ContentType === 'application/json') {
+            $Data = $this->ParseJsonInput();
+        } else {
+            $Data = $this->ParseFormDataInput();
+        }
+        $GLOBALS['_' . $Method] = $Data;
+    }
 
+    protected function ParseJsonInput()
+    {
+        /* data comes in on the stdin stream */
+        $inputdata = fopen("php://input", "r");
+
+        /* Read the data 1 KB at a time and write to the file */
+        $raw_data = '';
+        while ($chunk = fread($inputdata, 1024)) {
+            $raw_data .= $chunk;
+        }
+
+        /* Close the streams */
+        fclose($inputdata);
+
+        return json_decode($raw_data, true);
+    }
+
+    protected function ParseFormDataInput()
+    {
         /* data comes in on the stdin stream */
         $inputdata = fopen("php://input", "r");
 
@@ -227,8 +254,7 @@ abstract class App
 
         if (empty($boundary)) {
             parse_str($raw_data, $data);
-            $GLOBALS['_' . $Method] = $data;
-            return;
+            return $data;
         }
 
         // Fetch each part
@@ -302,7 +328,7 @@ abstract class App
             }
         }
 
-        $GLOBALS['_' . $Method] = $data;
+        return $data;
     }
 
     /**

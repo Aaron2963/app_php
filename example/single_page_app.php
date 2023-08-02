@@ -11,7 +11,7 @@ use \Lin\AppPhp\Authorization\AuthorizationInterface;
 // 實作 AuthorizationInterface
 class Authorization implements AuthorizationInterface
 {
-    public function Authorize($Token, $ResourceScopes = [])
+    public function Authorize($Token, $RequestScopes = [])
     {
         return true;
     }

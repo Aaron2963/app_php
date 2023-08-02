@@ -49,12 +49,16 @@ class SinglePageApp extends App
     {
         $this->ServerRequest = $ServerRequest;
         $Method = $ServerRequest->getMethod();
+        foreach (getallheaders() as $Name => $Value) {
+            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
+        }
         // 處理請求
         switch ($Method) {
             case 'GET':
                 $this->Response = $this->OnGet();
                 break;
             case 'POST':
+                $this->ParsePHPInput();
                 $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnPost();
                 break;
