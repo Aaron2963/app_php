@@ -135,7 +135,7 @@ abstract class App
     {
         return $this->Response;
     }
-    
+
     /**
      * Add response headers
      *
@@ -196,7 +196,7 @@ abstract class App
     }
 
     /**
-     * Parse formdata from `php://input`, and put it into `$_PUT|$_PATCH|$_DELETE` and `$_FILES`
+     * Parse request body from `php://input`, and put it into `$_PUT|$_PATCH|$_DELETE` and `$_FILES`
      *
      * @return void
      * 
@@ -210,18 +210,28 @@ abstract class App
         }
         $ContentType = $this->ServerRequest->getHeader('Content-Type');
         $ContentType = $ContentType[0] ?? '';
-        if (str_starts_with($ContentType, 'multipart/form-data') && $Method === 'POST') {
-            // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
-            // https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input
-            return;
+        if (str_starts_with($ContentType, 'multipart/form-data')) {
+            if ($Method === 'POST' && ini_get('enable_post_data_reading')) {
+                // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
+                // https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input
+                return;
+            }
+            $Data = $this->ParseMultipartFormDataInput();
         } else if ($ContentType === 'application/json') {
             $Data = $this->ParseJsonInput();
+        } else if ($ContentType === 'application/x-www-form-urlencoded') {
+            $Data = $this->ParseFormUrlencodedInput();
         } else {
-            $Data = $this->ParseFormDataInput();
+            throw new \RuntimeException('Unsupported Content-Type: ' . $ContentType);
         }
         $GLOBALS['_' . $Method] = $Data;
     }
 
+    /**
+     * Parse JSON from `php://input`
+     *
+     * @return array
+     */
     protected function ParseJsonInput()
     {
         /* data comes in on the stdin stream */
@@ -239,8 +249,15 @@ abstract class App
         return json_decode($raw_data, true);
     }
 
-    protected function ParseFormDataInput()
+    /**
+     * Parse multipart/form-data from `php://input`
+     *
+     * @return array
+     */
+    protected function ParseMultipartFormDataInput()
     {
+        unset($_FILES);
+
         /* data comes in on the stdin stream */
         $inputdata = fopen("php://input", "r");
 
@@ -255,11 +272,6 @@ abstract class App
 
         // Fetch content and determine boundary
         $boundary = substr($raw_data, 0, strpos($raw_data, "\r\n"));
-
-        if (empty($boundary)) {
-            parse_str($raw_data, $data);
-            return $data;
-        }
 
         // Fetch each part
         $parts = array_slice(explode($boundary, $raw_data), 1);
@@ -282,56 +294,101 @@ abstract class App
             }
 
             // Parse the Content-Disposition to get the field name, etc.
-            if (isset($headers['content-disposition'])) {
-                $filename = null;
-                $tmp_name = null;
-                preg_match(
-                    '/^(.+); *name="([^"]+)"(; *filename="([^"]+)")?/',
-                    $headers['content-disposition'],
-                    $matches
+            if (!isset($headers['content-disposition'])) {
+                continue;
+            }
+            preg_match(
+                '/^(.+); *name="([^"]+)"(; *filename="([^"]+)")?/',
+                $headers['content-disposition'],
+                $matches
+            );
+            $name = $matches[2];
+
+            //Parse File
+            if (isset($matches[4])) {
+                //if labeled the same as previous, skip
+                if (isset($_FILES[$matches[2]])) {
+                    continue;
+                }
+
+                //get filename
+                $filename = $matches[4];
+
+                //get tmp name
+                $tmp_name = tempnam(ini_get('upload_tmp_dir'), 'app');
+
+                //populate $_FILES with information, size may be off in multibyte situation
+                $value = array(
+                    'error' => 0,
+                    'name' => $filename,
+                    'tmp_name' => $tmp_name,
+                    'size' => strlen($body),
+                    'type' => $headers['content-type']
                 );
-                list(, $type, $name) = $matches;
-
-                //Parse File
-                if (isset($matches[4])) {
-                    //if labeled the same as previous, skip
-                    if (isset($_FILES[$matches[2]])) {
-                        continue;
-                    }
-
-                    //get filename
-                    $filename = $matches[4];
-
-                    //get tmp name
-                    $filename_parts = pathinfo($filename);
-                    $tmp_name = tempnam(ini_get('upload_tmp_dir'), $filename_parts['filename']);
-
-                    //populate $_FILES with information, size may be off in multibyte situation
-                    $_FILES[$matches[2]] = array(
-                        'error' => 0,
-                        'name' => $filename,
-                        'tmp_name' => $tmp_name,
-                        'size' => strlen($body),
-                        'type' => $value
-                    );
-
-                    //place in temporary directory
-                    file_put_contents($tmp_name, $body);
-                } else {
-                    //Parse Field
-                    if (substr($name, -2) == '[]') {
-                        $name = substr($name, 0, -2);
-                        if (!isset($data[$name])) {
-                            $data[$name] = array();
+                $keys = explode('[', $name);
+                $keys = array_map(function ($k) {
+                    return rtrim($k, ']');
+                }, $keys);
+                if (count($keys) > 1) {
+                    for ($i = count($keys) - 1; $i >= 0; $i--) {
+                        if ($keys[$i] === '') {
+                            $value = [$value];
+                        } else {
+                            $value = [$keys[$i] => $value];
                         }
-                        $data[$name][] = substr($body, 0, strlen($body) - 2);
-                    } else {
-                        $data[$name] = substr($body, 0, strlen($body) - 2);
                     }
+                    $_FILES[$keys[0]] = array_merge_recursive($_FILES[$keys[0]] ?? [], $value[$keys[0]]);
+                } else {
+                    $_FILES[$name] = $value;
+                }
+
+                //place in temporary directory
+                file_put_contents($tmp_name, $body);
+            } else {
+                //Parse Field
+                $value = substr($body, 0, strlen($body) - 2);
+                $keys = explode('[', $name);
+                $keys = array_map(function ($k) {
+                    return rtrim($k, ']');
+                }, $keys);
+                if (count($keys) > 1) {
+                    for ($i = count($keys) - 1; $i >= 0; $i--) {
+                        if ($keys[$i] === '') {
+                            $value = [$value];
+                        } else {
+                            $value = [$keys[$i] => $value];
+                        }
+                    }
+                    $data[$keys[0]] = array_merge_recursive($data[$keys[0]] ?? [], $value[$keys[0]]);
+                } else {
+                    $data[$name] = $value;
                 }
             }
         }
 
+        return $data;
+    }
+
+    /**
+     * Parse x-www-form-urlencoded from `php://input`
+     *
+     * @return void
+     */
+    protected function ParseFormUrlencodedInput()
+    {
+        /* data comes in on the stdin stream */
+        $inputdata = fopen("php://input", "r");
+
+        /* Read the data 1 KB at a time and write to the file */
+        $raw_data = '';
+        while ($chunk = fread($inputdata, 1024)) {
+            $raw_data .= $chunk;
+        }
+
+        /* Close the streams */
+        fclose($inputdata);
+
+        parse_str($raw_data, $data);
         return $data;
     }
 
