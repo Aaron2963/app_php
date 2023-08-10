@@ -210,7 +210,11 @@ abstract class App
         }
         $ContentType = $this->ServerRequest->getHeader('Content-Type');
         $ContentType = $ContentType[0] ?? '';
-        if ($ContentType === 'application/json') {
+        if (str_starts_with($ContentType, 'multipart/form-data') && $Method === 'POST') {
+            // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
+            // https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input
+            return;
+        } else if ($ContentType === 'application/json') {
             $Data = $this->ParseJsonInput();
         } else {
             $Data = $this->ParseFormDataInput();
