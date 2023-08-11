@@ -210,6 +210,8 @@ abstract class App
         }
         $ContentType = $this->ServerRequest->getHeader('Content-Type');
         $ContentType = $ContentType[0] ?? '';
+        $ContentType = explode(';', $ContentType)[0];
+        $ContentType = strtolower(trim($ContentType));
         if (str_starts_with($ContentType, 'multipart/form-data')) {
             if ($Method === 'POST' && ini_get('enable_post_data_reading')) {
                 // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
@@ -318,28 +320,23 @@ abstract class App
                 $tmp_name = tempnam(ini_get('upload_tmp_dir'), 'app');
 
                 //populate $_FILES with information, size may be off in multibyte situation
-                $value = array(
+                $file_info = array(
                     'error' => 0,
                     'name' => $filename,
                     'tmp_name' => $tmp_name,
                     'size' => strlen($body),
                     'type' => $headers['content-type']
                 );
-                $keys = explode('[', $name);
-                $keys = array_map(function ($k) {
-                    return rtrim($k, ']');
-                }, $keys);
-                if (count($keys) > 1) {
-                    for ($i = count($keys) - 1; $i >= 0; $i--) {
-                        if ($keys[$i] === '') {
-                            $value = [$value];
-                        } else {
-                            $value = [$keys[$i] => $value];
-                        }
+                if (strpos($name, '[') !== false) {
+                    $_FILES = [];
+                    foreach ($file_info as $k => $v) {
+                        $keys = explode('[', $name);
+                        array_splice($keys, 1, 0, $k . ']');
+                        $sname = implode('[', $keys);
+                        $this->StringKeyToDeepArray($_FILES, $sname, $v);
                     }
-                    $_FILES[$keys[0]] = array_merge_recursive($_FILES[$keys[0]] ?? [], $value[$keys[0]]);
                 } else {
-                    $_FILES[$name] = $value;
+                    $_FILES[$name] = $file_info;
                 }
 
                 //place in temporary directory
@@ -347,26 +344,39 @@ abstract class App
             } else {
                 //Parse Field
                 $value = substr($body, 0, strlen($body) - 2);
-                $keys = explode('[', $name);
-                $keys = array_map(function ($k) {
-                    return rtrim($k, ']');
-                }, $keys);
-                if (count($keys) > 1) {
-                    for ($i = count($keys) - 1; $i >= 0; $i--) {
-                        if ($keys[$i] === '') {
-                            $value = [$value];
-                        } else {
-                            $value = [$keys[$i] => $value];
-                        }
-                    }
-                    $data[$keys[0]] = array_merge_recursive($data[$keys[0]] ?? [], $value[$keys[0]]);
-                } else {
-                    $data[$name] = $value;
-                }
+                $this->StringKeyToDeepArray($data, $name, $value);
             }
         }
 
         return $data;
+    }
+    
+    /**
+     * Convert key like `obj[k1][k2]` to deep array, and merge with existing array
+     *
+     * @param  array    $Array  Existing array
+     * @param  string   $Key    Key
+     * @param  mixed    $Value  Value
+     * @return void
+     */
+    protected function StringKeyToDeepArray(array &$Array, string $Key, $Value) : void
+    {
+        $keys = explode('[', $Key);
+        $keys = array_map(function ($k) {
+            return rtrim($k, ']');
+        }, $keys);
+        if (count($keys) > 1) {
+            for ($i = count($keys) - 1; $i >= 0; $i--) {
+                if ($keys[$i] === '') {
+                    $Value = [$Value];
+                } else {
+                    $Value = [$keys[$i] => $Value];
+                }
+            }
+            $Array[$keys[0]] = array_merge_recursive($Array[$keys[0]] ?? [], $Value[$keys[0]]);
+        } else {
+            $Array[$Key] = $Value;
+        }
     }
 
     /**
