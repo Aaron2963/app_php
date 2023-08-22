@@ -212,6 +212,9 @@ abstract class App
         $ContentType = $ContentType[0] ?? '';
         $ContentType = explode(';', $ContentType)[0];
         $ContentType = strtolower(trim($ContentType));
+        if ($ContentType === '') {
+            return;
+        }
         if (str_starts_with($ContentType, 'multipart/form-data')) {
             if ($Method === 'POST' && ini_get('enable_post_data_reading')) {
                 // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
@@ -350,7 +353,7 @@ abstract class App
 
         return $data;
     }
-    
+
     /**
      * Convert key like `obj[k1][k2]` to deep array, and merge with existing array
      *
@@ -359,7 +362,7 @@ abstract class App
      * @param  mixed    $Value  Value
      * @return void
      */
-    protected function StringKeyToDeepArray(array &$Array, string $Key, $Value) : void
+    protected function StringKeyToDeepArray(array &$Array, string $Key, $Value): void
     {
         $keys = explode('[', $Key);
         $keys = array_map(function ($k) {
