@@ -281,6 +281,8 @@ abstract class App
         // Fetch each part
         $parts = array_slice(explode($boundary, $raw_data), 1);
         $data = array();
+        $postParams = [];
+        $fileParams = [];
 
         foreach ($parts as $part) {
             // If this is the last part, break
@@ -316,6 +318,10 @@ abstract class App
                     continue;
                 }
 
+                if (!isset($_FILES)) {
+                    $_FILES = array();
+                }
+
                 //get filename
                 $filename = $matches[4];
 
@@ -330,16 +336,17 @@ abstract class App
                     'size' => strlen($body),
                     'type' => $headers['content-type']
                 );
-                if (strpos($name, '[') !== false) {
-                    $_FILES = [];
-                    foreach ($file_info as $k => $v) {
+                foreach ($file_info as $k => $v) {
+                    if (strpos($name, '[') !== false) {
                         $keys = explode('[', $name);
                         array_splice($keys, 1, 0, $k . ']');
                         $sname = implode('[', $keys);
-                        $this->StringKeyToDeepArray($_FILES, $sname, $v);
+                        $fileParams[] = "$sname=$v";
+                    } else {
+                        $_FILES[$name] = $file_info;
+                        $sname = $name . '[' . $k . ']';
+                        $fileParams[] = "$sname=$v";
                     }
-                } else {
-                    $_FILES[$name] = $file_info;
                 }
 
                 //place in temporary directory
@@ -347,8 +354,14 @@ abstract class App
             } else {
                 //Parse Field
                 $value = substr($body, 0, strlen($body) - 2);
-                $this->StringKeyToDeepArray($data, $name, $value);
+                $postParams[] = "$name=$value";
             }
+        }
+        $postParams = implode('&', $postParams);
+        parse_str($postParams, $data);
+        if (count($fileParams) > 0) {
+            $fileParams = implode('&', $fileParams);
+            parse_str($fileParams, $_FILES);
         }
 
         return $data;
