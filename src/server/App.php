@@ -368,37 +368,9 @@ abstract class App
     }
 
     /**
-     * Convert key like `obj[k1][k2]` to deep array, and merge with existing array
-     *
-     * @param  array    $Array  Existing array
-     * @param  string   $Key    Key
-     * @param  mixed    $Value  Value
-     * @return void
-     */
-    protected function StringKeyToDeepArray(array &$Array, string $Key, $Value): void
-    {
-        $keys = explode('[', $Key);
-        $keys = array_map(function ($k) {
-            return rtrim($k, ']');
-        }, $keys);
-        if (count($keys) > 1) {
-            for ($i = count($keys) - 1; $i >= 0; $i--) {
-                if ($keys[$i] === '') {
-                    $Value = [$Value];
-                } else {
-                    $Value = [$keys[$i] => $Value];
-                }
-            }
-            $Array[$keys[0]] = array_merge_recursive($Array[$keys[0]] ?? [], $Value[$keys[0]]);
-        } else {
-            $Array[$Key] = $Value;
-        }
-    }
-
-    /**
      * Parse x-www-form-urlencoded from `php://input`
      *
-     * @return void
+     * @return array
      */
     protected function ParseFormUrlencodedInput()
     {
