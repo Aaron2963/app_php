@@ -231,8 +231,9 @@ class User extends RestfulApp
 }
 
 // 處理請求
+$PublicKeyPath = '/var/www/pubkeys/oauth_pub';
 $App = new User();
-$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
+$App->WithAuthorization(new Authorization($PublicKeyPath))->HandleRequest(App::CreateServerRequest());
 $App->SendResponse();
 exit;
 ```
