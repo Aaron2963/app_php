@@ -166,7 +166,7 @@ abstract class App
         $Psr17Factory = new Psr17Factory();
         $ResponseBody = $Psr17Factory->createStream(json_encode($Array, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         return $Psr17Factory->createResponse($StatusCode)->withBody($ResponseBody)
-            ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
     /**
