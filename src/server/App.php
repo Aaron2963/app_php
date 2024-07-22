@@ -35,6 +35,13 @@ abstract class App
     protected $Authorization = null;
 
     /**
+     * Raw body
+     * 
+     * @var string
+     */
+    protected $RawBody = null;
+
+    /**
      * Error
      *
      * @var \Exception
@@ -153,6 +160,16 @@ abstract class App
     }
 
     /**
+     * Get body raw data as string
+     *
+     * @return string
+     */
+    public function GetRawBody()
+    {
+        return $this->RawBody;
+    }
+
+    /**
      * Get response with JSON body
      * 
      * @param   array   $Array      content of response body
@@ -250,6 +267,7 @@ abstract class App
 
         /* Close the streams */
         fclose($inputdata);
+        $this->RawBody = $raw_data;
 
         return json_decode($raw_data, true);
     }
@@ -274,6 +292,7 @@ abstract class App
 
         /* Close the streams */
         fclose($inputdata);
+        $this->RawBody = $raw_data;
 
         // Fetch content and determine boundary
         $boundary = substr($raw_data, 0, strpos($raw_data, "\r\n"));
@@ -385,6 +404,7 @@ abstract class App
 
         /* Close the streams */
         fclose($inputdata);
+        $this->RawBody = $raw_data;
 
         parse_str($raw_data, $data);
         return $data;
