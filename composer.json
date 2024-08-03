@@ -1,5 +1,6 @@
 {
     "name": "aaron-lin/app-php",
+    "version": "1.0.0",
     "type": "library",
     "description": "A PHP framework for web app.",
     "license": "MIT",
@@ -18,6 +19,8 @@
     "require": {
         "php": ">=7.4",
         "nyholm/psr7": "^1.5",
-        "firebase/php-jwt": "^6.4"
+        "firebase/php-jwt": "^6.4",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0"
     }
 }

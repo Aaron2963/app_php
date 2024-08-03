@@ -2,17 +2,20 @@
 
 namespace Lin\AppPhp\Server;
 
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+
 class CrudApp extends App
 {
     /**
      * Handle Server Request
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $ServerRequest
+     * @param ServerRequestInterface $ServerRequest
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    public function HandleRequest($ServerRequest)
+    public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
         $this->ServerRequest = $ServerRequest;
         if ($ServerRequest->getMethod() !== 'POST') {
@@ -58,7 +61,7 @@ class CrudApp extends App
     /**
      * Handle Request when command is `CREATE`
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnCreate()
@@ -69,7 +72,7 @@ class CrudApp extends App
     /**
      * Handle Request when command is `SELECT`
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnRead()
@@ -80,7 +83,7 @@ class CrudApp extends App
     /**
      * Handle Request when command is `UPDATE`
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnUpdate()
@@ -91,7 +94,7 @@ class CrudApp extends App
     /**
      * Handle Request when command is `DELETE`
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnDelete()

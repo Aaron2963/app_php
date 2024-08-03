@@ -3,20 +3,24 @@
 namespace Lin\AppPhp\Server;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Lin\AppPhp\Authorization\AuthorizationInterface;
 
-abstract class App
+abstract class App implements RequestHandlerInterface
 {
     /**
      * Request
      *
-     * @var \Psr\Http\Message\ServerRequestInterface
+     * @var ServerRequestInterface
      */
     protected $ServerRequest = null;
 
     /**
      * Response
      *
-     * @var \Psr\Http\Message\ResponseInterface
+     * @var ResponseInterface
      */
     protected $Response = null;
 
@@ -30,7 +34,7 @@ abstract class App
     /**
      * Authorization mechanism
      *
-     * @var \Lin\AppPhp\Authorization\AuthorizationInterface
+     * @var AuthorizationInterface
      */
     protected $Authorization = null;
 
@@ -59,7 +63,7 @@ abstract class App
     /**
      * Create PSR-7 server request with Authorization header
      *
-     * @return \Psr\Http\Message\ServerRequestInterface
+     * @return ServerRequestInterface
      */
     static public function CreateServerRequest()
     {
@@ -76,22 +80,35 @@ abstract class App
     /**
      * Handle Server Request
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $ServerRequest
+     * @param ServerRequestInterface $ServerRequest
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    abstract public function HandleRequest($ServerRequest);
+    abstract public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface;
+
+    /**
+     * Handle Server Request
+     *
+     * @param ServerRequestInterface $ServerRequest
+     * 
+     * @return ResponseInterface
+     * 
+     */
+    public function handle(ServerRequestInterface $ServerRequest): ResponseInterface
+    {
+        return $this->HandleRequest($ServerRequest);
+    }
 
     /**
      * Set Authorization
      *
-     * @param \Lin\AppPhp\Authorization\AuthorizationInterface $Authorization
+     * @param AuthorizationInterface $Authorization
      * 
      * @return self
      * 
      */
-    public function WithAuthorization($Authorization)
+    public function WithAuthorization(AuthorizationInterface $Authorization): self
     {
         $this->Authorization = $Authorization;
         return $this;
@@ -105,7 +122,7 @@ abstract class App
      * @return bool 
      * 
      */
-    public function AuthorizeRequest($RequestScopes = [])
+    public function AuthorizeRequest(array $RequestScopes = []): bool
     {
         if ($this->Authorization == null) {
             return true;
@@ -124,10 +141,10 @@ abstract class App
     /**
      * Get ServerRequest
      * 
-     * @return \Psr\Http\Message\ServerRequestInterface
+     * @return ServerRequestInterface
      * 
      */
-    public function GetServerRequest()
+    public function GetServerRequest(): ServerRequestInterface
     {
         return $this->ServerRequest;
     }
@@ -135,10 +152,10 @@ abstract class App
     /**
      * Get Response
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    public function GetResponse()
+    public function GetResponse(): ResponseInterface
     {
         return $this->Response;
     }
@@ -149,7 +166,7 @@ abstract class App
      * @param  array $Headers
      * @return void
      */
-    public function AddHeaders($Headers)
+    public function AddHeaders(array $Headers): void
     {
         if ($this->Response == null) {
             throw new \RuntimeException('Response is null when adding headers');
@@ -164,7 +181,7 @@ abstract class App
      *
      * @return string
      */
-    public function GetRawBody()
+    public function GetRawBody(): string
     {
         return $this->RawBody;
     }
@@ -175,10 +192,10 @@ abstract class App
      * @param   array   $Array      content of response body
      * @param   int     $StatusCode status code
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    static public function JsonResponse($Array, $StatusCode = 200)
+    static public function JsonResponse(array $Array, int $StatusCode = 200): ResponseInterface
     {
         $Psr17Factory = new Psr17Factory();
         $ResponseBody = $Psr17Factory->createStream(json_encode($Array, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -189,10 +206,10 @@ abstract class App
     /**
      * Get `204 No Content` response
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    static public function NoContentResponse()
+    static public function NoContentResponse(): ResponseInterface
     {
         $Psr17Factory = new Psr17Factory();
         return $Psr17Factory->createResponse(204);
@@ -201,10 +218,10 @@ abstract class App
     /**
      * Get `401 Unauthorized` response
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    static public function UnauthorizedResponse()
+    static public function UnauthorizedResponse(): ResponseInterface
     {
         $Psr17Factory = new Psr17Factory();
         $Response = $Psr17Factory->createResponse(401);
@@ -218,7 +235,7 @@ abstract class App
      * @return void
      * 
      */
-    protected function ParsePHPInput()
+    protected function ParsePHPInput(): void
     {
         $Method = $this->ServerRequest->getMethod();
         $ValidMethods = ['PUT', 'PATCH', 'DELETE', 'POST'];
@@ -254,7 +271,7 @@ abstract class App
      *
      * @return array
      */
-    protected function ParseJsonInput()
+    protected function ParseJsonInput(): array
     {
         /* data comes in on the stdin stream */
         $inputdata = fopen("php://input", "r");
@@ -277,7 +294,7 @@ abstract class App
      *
      * @return array
      */
-    protected function ParseMultipartFormDataInput()
+    protected function ParseMultipartFormDataInput(): array
     {
         unset($_FILES);
 
@@ -391,7 +408,7 @@ abstract class App
      *
      * @return array
      */
-    protected function ParseFormUrlencodedInput()
+    protected function ParseFormUrlencodedInput(): array
     {
         /* data comes in on the stdin stream */
         $inputdata = fopen("php://input", "r");
@@ -416,7 +433,7 @@ abstract class App
      * @return void
      * 
      */
-    public function SendResponse()
+    public function SendResponse(): void
     {
         $Response = $this->Response;
         if (headers_sent()) {

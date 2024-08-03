@@ -2,6 +2,9 @@
 
 namespace Lin\AppPhp\Server;
 
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+
 class SinglePageApp extends App
 {
     /**
@@ -21,7 +24,7 @@ class SinglePageApp extends App
     /**
      * Request
      *
-     * @var \Psr\Http\Message\ServerRequestInterface
+     * @var ServerRequestInterface
      */
     protected $ServerRequest = null;
 
@@ -40,12 +43,12 @@ class SinglePageApp extends App
     /**
      * Handle Server Request
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $ServerRequest
+     * @param ServerRequestInterface $ServerRequest
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    public function HandleRequest($ServerRequest)
+    public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
         $this->ServerRequest = $ServerRequest;
         $Method = $ServerRequest->getMethod();
@@ -72,7 +75,7 @@ class SinglePageApp extends App
     /**
      * Handle Request when Method is GET
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnGet()
@@ -84,7 +87,7 @@ class SinglePageApp extends App
     /**
      * Handle Request when Method is POST
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnPost()

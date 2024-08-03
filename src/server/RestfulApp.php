@@ -2,17 +2,20 @@
 
 namespace Lin\AppPhp\Server;
 
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+
 class RestfulApp extends App
 {
     /**
      * Handle Server Request
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $ServerRequest
+     * @param ServerRequestInterface $ServerRequest
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
-    public function HandleRequest($ServerRequest)
+    public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
         global $_PUT, $_DELETE, $_PATCH;
         $this->ServerRequest = $ServerRequest;
@@ -55,7 +58,7 @@ class RestfulApp extends App
     /**
      * Handle Request when Method is GET
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnGet()
@@ -66,7 +69,7 @@ class RestfulApp extends App
     /**
      * Handle Request when Method is POST
      * 
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnPost()
@@ -77,7 +80,7 @@ class RestfulApp extends App
     /**
      * Handle Request when Method is PUT
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnPut()
@@ -88,7 +91,7 @@ class RestfulApp extends App
     /**
      * Handle Request when Method is PATCH
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnPatch()
@@ -99,7 +102,7 @@ class RestfulApp extends App
     /**
      * Handle Request when Method is DELETE
      *
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      * 
      */
     public function OnDelete()
