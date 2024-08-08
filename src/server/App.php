@@ -428,7 +428,7 @@ abstract class App implements RequestHandlerInterface
     }
 
     /**
-     * Send Response
+     * Send response stored in the object
      *
      * @return void
      * 
@@ -436,30 +436,43 @@ abstract class App implements RequestHandlerInterface
     public function SendResponse(): void
     {
         $Response = $this->Response;
+        if ($Response == null) {
+            throw new \RuntimeException('Response is null when sending response');
+        }
+        App::Send($Response);
+        return;
+    }
+    
+    /**
+     * Send Response
+     *
+     * @param  ResponseInterface $Response
+     * 
+     * @return void
+     */
+    static public function Send(ResponseInterface $Response): void
+    {
         if (headers_sent()) {
             throw new \RuntimeException('Headers were already sent. The response could not be emitted!');
         }
 
-        // Step 1: Send the "status line".
         $statusLine = sprintf(
             'HTTP/%s %s %s',
             $Response->getProtocolVersion(),
             $Response->getStatusCode(),
             $Response->getReasonPhrase()
         );
-        header($statusLine, TRUE); /* The header replaces a previous similar header. */
+        header($statusLine, TRUE);
 
-        // Step 2: Send the response headers from the headers list.
         foreach ($Response->getHeaders() as $name => $values) {
             $responseHeader = sprintf(
                 '%s: %s',
                 $name,
                 $Response->getHeaderLine($name)
             );
-            header($responseHeader, FALSE); /* The header doesn't replace a previous similar header. */
+            header($responseHeader, FALSE);
         }
 
-        // Step 3: Output the message body.
         echo $Response->getBody();
         return;
     }

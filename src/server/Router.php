@@ -48,14 +48,14 @@ class Router
     public function Run(string $RequestURI): void
     {
         $Path = str_replace('//', '/', $RequestURI);
-        $Request = App::CreateServerRequest();
         $Creator = $this->ResolveRoute($this->Routes, $Path);
-        $Request = $Request->withAttribute('PathParams', $this->PathParams);
         if (!isset($Creator[0])) {
             http_response_code(404);
             echo 'Not Found';
             return;
         }
+        $Request = App::CreateServerRequest();
+        $Request = $Request->withAttribute('PathParams', $this->PathParams);
         $App = $Creator[0];
         if (!($App instanceof RestfulApp)) {
             http_response_code(500);
