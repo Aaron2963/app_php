@@ -64,6 +64,7 @@ abstract class OAuthAuthorization implements AuthorizationInterface
     {
         // get public key
         $PublicKey = file_get_contents($this->PublicKeyUri);
+        unset($this->Error);
         try {
             $Decoded = JWT::decode($Token, new Key($PublicKey, 'RS256'));
             if ($this->IsTokenRevoked($Decoded->jti)) {

@@ -2,3 +2,5 @@ vendor
 composer.lock
 docker-compose.yml
 Dockerfile
+.phpunit.cache
+tests/report
