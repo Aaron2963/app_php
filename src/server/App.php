@@ -7,6 +7,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Lin\AppPhp\Authorization\AuthorizationInterface;
+use Nyholm\Psr7Server\ServerRequestCreator;
 
 abstract class App implements RequestHandlerInterface
 {
@@ -67,14 +68,16 @@ abstract class App implements RequestHandlerInterface
      */
     static public function CreateServerRequest()
     {
-        $Headers = [];
-        foreach (\getallheaders() as $key => $value) {
-            $Headers[\strtoupper($key)] = $value;
-            $_SERVER['HTTP_' . \str_replace('-', '_', \strtoupper($key))] = $value;
-        }
-        $Psr17Factory = new Psr17Factory();
-        return $Psr17Factory->createServerRequest($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'], $_SERVER)
-            ->withAddedHeader('Authorization', $Headers['AUTHORIZATION'] ?? '');
+        $Factory = new Psr17Factory();
+        $Creator = new ServerRequestCreator(
+            $Factory,
+            $Factory,
+            $Factory,
+            $Factory
+        );
+        $_FILES = $_FILES ?? [];
+        $Request = $Creator->fromGlobals();
+        return $Request->withParsedBody(self::ParseContentByType($Request->getBody()->getContents(), $Request->getHeader('Content-Type')[0] ?? ''));
     }
 
     /**
@@ -97,7 +100,11 @@ abstract class App implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $ServerRequest): ResponseInterface
     {
-        return $this->HandleRequest($ServerRequest);
+        $this->ServerRequest = $ServerRequest;
+        $this->RawBody = $this->ServerRequest->getBody()->getContents();
+        $this->ParsePHPInput();
+        $this->Response = $this->HandleRequest($ServerRequest);
+        return $this->Response;
     }
 
     /**
@@ -136,6 +143,19 @@ abstract class App implements RequestHandlerInterface
             return false;
         }
         return $this->Authorization->Authorize(array_pop($Token), $RequestScopes);
+    }
+
+    /**
+     * Set ServerRequest
+     * 
+     * @return self
+     * 
+     */
+    public function WithServerRequest(ServerRequestInterface $ServerRequest): self
+    {
+        $this->ServerRequest = $ServerRequest;
+        $this->RawBody = $ServerRequest->getBody()->getContents();
+        return $this;
     }
 
     /**
@@ -223,16 +243,13 @@ abstract class App implements RequestHandlerInterface
      */
     static public function UnauthorizedResponse(): ResponseInterface
     {
-        $Psr17Factory = new Psr17Factory();
-        $Response = $Psr17Factory->createResponse(401);
-        $Response->getBody()->write(json_encode(["message" => "unauthorized request"]));
-        return $Response;
+        return self::JsonResponse(['message' => 'unauthorized request'], 401);
     }
 
     /**
      * Parse request body from `php://input`, and put it into `$_PUT|$_PATCH|$_DELETE` and `$_FILES`
      *
-     * @return void
+     * @return array
      * 
      */
     protected function ParsePHPInput(): void
@@ -242,28 +259,40 @@ abstract class App implements RequestHandlerInterface
         if (!in_array($Method, $ValidMethods)) {
             return;
         }
-        $ContentType = $this->ServerRequest->getHeader('Content-Type');
-        $ContentType = $ContentType[0] ?? '';
-        $ContentType = explode(';', $ContentType)[0];
-        $ContentType = strtolower(trim($ContentType));
-        if ($ContentType === '') {
-            return;
+        $ContentType = $this->ServerRequest->getHeader('Content-Type')[0] ?? '';
+        try {
+            $Data = self::ParseContentByType($this->RawBody, $ContentType);
+        } catch (\Exception $e) {
+            $Data = [];
         }
-        if (str_starts_with($ContentType, 'multipart/form-data')) {
-            if ($Method === 'POST' && ini_get('enable_post_data_reading')) {
-                // php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.
-                // https://www.php.net/manual/en/wrappers.php.php#wrappers.php.input
-                return;
-            }
-            $Data = $this->ParseMultipartFormDataInput();
-        } else if ($ContentType === 'application/json') {
-            $Data = $this->ParseJsonInput();
-        } else if ($ContentType === 'application/x-www-form-urlencoded') {
-            $Data = $this->ParseFormUrlencodedInput();
-        } else {
-            throw new \RuntimeException('Unsupported Content-Type: ' . $ContentType);
-        }
+        $this->ServerRequest = $this->ServerRequest->withParsedBody($Data);
         $GLOBALS['_' . $Method] = $Data;
+    }
+
+    static public function ParseContentByType(string $Content, string $Type): array
+    {
+        if (ini_get('enable_post_data_reading')) {
+            trigger_error('php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.', E_USER_WARNING);
+        }
+        $Data = [];
+        list($Type,) = explode(';', $Type);
+        if (empty($Type)) {
+            return $Data;
+        }
+        switch ($Type) {
+            case 'multipart/form-data':
+                $Data = self::ParseMultipartFormDataInput($Content);
+                break;
+            case 'application/json':
+                $Data = self::ParseJsonInput($Content);
+                break;
+            case 'application/x-www-form-urlencoded':
+                $Data = self::ParseFormUrlencodedInput($Content);
+                break;
+            default:
+                throw new \RuntimeException('Unsupported Content-Type: ' . $Type);
+        }
+        return $Data;
     }
 
     /**
@@ -271,22 +300,9 @@ abstract class App implements RequestHandlerInterface
      *
      * @return array
      */
-    protected function ParseJsonInput(): array
+    static protected function ParseJsonInput(string $Raw): array
     {
-        /* data comes in on the stdin stream */
-        $inputdata = fopen("php://input", "r");
-
-        /* Read the data 1 KB at a time and write to the file */
-        $raw_data = '';
-        while ($chunk = fread($inputdata, 1024)) {
-            $raw_data .= $chunk;
-        }
-
-        /* Close the streams */
-        fclose($inputdata);
-        $this->RawBody = $raw_data;
-
-        return json_decode($raw_data, true);
+        return json_decode($Raw, true) ?? [];
     }
 
     /**
@@ -294,28 +310,15 @@ abstract class App implements RequestHandlerInterface
      *
      * @return array
      */
-    protected function ParseMultipartFormDataInput(): array
+    static protected function ParseMultipartFormDataInput(string $Raw): array
     {
         unset($_FILES);
 
-        /* data comes in on the stdin stream */
-        $inputdata = fopen("php://input", "r");
-
-        /* Read the data 1 KB at a time and write to the file */
-        $raw_data = '';
-        while ($chunk = fread($inputdata, 1024)) {
-            $raw_data .= $chunk;
-        }
-
-        /* Close the streams */
-        fclose($inputdata);
-        $this->RawBody = $raw_data;
-
         // Fetch content and determine boundary
-        $boundary = substr($raw_data, 0, strpos($raw_data, "\r\n"));
+        $boundary = substr($Raw, 0, strpos($Raw, "\r\n"));
 
         // Fetch each part
-        $parts = array_slice(explode($boundary, $raw_data), 1);
+        $parts = array_slice(explode($boundary, $Raw), 1);
         $data = array();
         $postParams = [];
         $fileParams = [];
@@ -408,22 +411,9 @@ abstract class App implements RequestHandlerInterface
      *
      * @return array
      */
-    protected function ParseFormUrlencodedInput(): array
+    static protected function ParseFormUrlencodedInput(string $Raw): array
     {
-        /* data comes in on the stdin stream */
-        $inputdata = fopen("php://input", "r");
-
-        /* Read the data 1 KB at a time and write to the file */
-        $raw_data = '';
-        while ($chunk = fread($inputdata, 1024)) {
-            $raw_data .= $chunk;
-        }
-
-        /* Close the streams */
-        fclose($inputdata);
-        $this->RawBody = $raw_data;
-
-        parse_str($raw_data, $data);
+        parse_str($Raw, $data);
         return $data;
     }
 
@@ -442,7 +432,7 @@ abstract class App implements RequestHandlerInterface
         App::Send($Response);
         return;
     }
-    
+
     /**
      * Send Response
      *
