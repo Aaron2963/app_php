@@ -13,5 +13,5 @@ interface AuthorizationInterface
      * @return bool
      * 
      */
-    public function Authorize($Token, $RequestScopes = []);
+    public function Authorize($Token, $RequestScopes = []): bool;
 }

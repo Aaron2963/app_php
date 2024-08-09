@@ -60,11 +60,11 @@ abstract class OAuthAuthorization implements AuthorizationInterface
      * @return bool
      * 
      */
-    public function Authorize($Token, $RequestScopes = [])
+    public function Authorize($Token, $RequestScopes = []): bool
     {
         // get public key
         $PublicKey = file_get_contents($this->PublicKeyUri);
-        unset($this->Error);
+        $this->Error = null;
         try {
             $Decoded = JWT::decode($Token, new Key($PublicKey, 'RS256'));
             if ($this->IsTokenRevoked($Decoded->jti)) {
