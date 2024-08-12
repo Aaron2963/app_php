@@ -17,12 +17,9 @@ class RestfulApp extends App
      */
     public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
-        global $_PUT, $_DELETE, $_PATCH;
         $this->ServerRequest = $ServerRequest;
+        $this->RawBody = $ServerRequest->getBody()->getContents();
         $Method = $ServerRequest->getMethod();
-        foreach (getallheaders() as $Name => $Value) {
-            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
-        }
         // 處理請求
         switch ($Method) {
             case 'GET':
@@ -30,22 +27,18 @@ class RestfulApp extends App
                 break;
             case 'POST':
                 $this->ParsePHPInput();
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnPost();
                 break;
             case 'PUT':
                 $this->ParsePHPInput();
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_PUT);
                 $this->Response = $this->OnPut();
                 break;
             case 'DELETE':
                 $this->ParsePHPInput();
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_DELETE);
                 $this->Response = $this->OnDelete();
                 break;
             case 'PATCH':
                 $this->ParsePHPInput();
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_PATCH);
                 $this->Response = $this->OnPatch();
                 break;
             default:
