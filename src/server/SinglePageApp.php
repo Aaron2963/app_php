@@ -4,6 +4,10 @@ namespace Lin\AppPhp\Server;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use ReflectionFunction;
+use Closure;
+use Exception;
 
 class SinglePageApp extends App
 {
@@ -51,10 +55,8 @@ class SinglePageApp extends App
     public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
         $this->ServerRequest = $ServerRequest;
+        $this->RawBody = $ServerRequest->getBody()->getContents();
         $Method = $ServerRequest->getMethod();
-        foreach (getallheaders() as $Name => $Value) {
-            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
-        }
         // 處理請求
         switch ($Method) {
             case 'GET':
@@ -62,7 +64,6 @@ class SinglePageApp extends App
                 break;
             case 'POST':
                 $this->ParsePHPInput();
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnPost();
                 break;
             default:
@@ -81,7 +82,9 @@ class SinglePageApp extends App
     public function OnGet()
     {
         $ResponseBody = $this->Psr17Factory->createStream($this->WebPage);
-        return $this->Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        $this->Response = $this->Psr17Factory->createResponse(200)->withBody($ResponseBody);
+        $this->Response = $this->Response->withHeader('Content-Type', 'text/html; charset=utf-8');
+        return $this->Response;
     }
 
     /**
@@ -93,30 +96,54 @@ class SinglePageApp extends App
     public function OnPost()
     {
         $Action = $this->ServerRequest->getParsedBody()['action'];
-        if (isset($this->PostActions[$Action])) {
-            return $this->PostActions[$Action]($this->ServerRequest);
+        $Callback = $this->PostActions[$Action] ?? null;
+        if (!isset($Callback)) {
+            $ResponseBody = $this->Psr17Factory->createStream("Bad Request: `action=$Action` not found");
+            return $this->Response = $this->Psr17Factory->createResponse(400)->withBody($ResponseBody);
         }
-        $ResponseBody = $this->Psr17Factory->createStream("Bad Request: `action=$Action` not found");
-        return $this->Psr17Factory->createResponse(400)->withBody($ResponseBody);
+        if ($Callback instanceof RequestHandlerInterface) {
+            return $this->Response = $Callback->handle($this->ServerRequest);
+        }
+        return $this->Response = $Callback($this->ServerRequest);
     }
 
     /**
      * Add Listening Post Action
      *
      * @param string    $Action     Action name
-     * @param \Closure  $Callback   Callback function with `ServerRequest` as parameter
+     * @param Closure   $Callback   Callback function with `ServerRequest` as parameter, return ResponseInterface
      * 
      * @return self
      * 
      */
-    public function AddPostAction($Action, $Callback)
+    public function AddPostAction(string $Action, Closure $Callback): self
     {
         //check if $Callback is function and has one parameter
-        $CallbackReflection = new \ReflectionFunction($Callback);
-        if ($CallbackReflection->getNumberOfParameters() !== 1) {
-            throw new \Exception("Callback function must have exactly one parameter");
+        $CallbackReflection = new ReflectionFunction($Callback);
+        if (
+            $CallbackReflection->getNumberOfParameters() !== 1 ||
+            $CallbackReflection->getParameters()[0]->getType()->getName() !== ServerRequestInterface::class ||
+            $CallbackReflection->getReturnType() == null ||
+            $CallbackReflection->getReturnType()->getName() !== ResponseInterface::class
+        ) {
+            throw new Exception("Callback function must have exactly one parameter");
         }
         $this->PostActions[$Action] = $Callback;
+        return $this;
+    }
+
+    /**
+     * Add Listening Post Action with RequestHandlerInterface
+     * 
+     * @param string                    $Action     Action name
+     * @param RequestHandlerInterface   $Handler    RequestHandlerInterface
+     * 
+     * @return self
+     * 
+     */
+    public function AddPostActionHandler(string $Action, RequestHandlerInterface $Handler): self
+    {
+        $this->PostActions[$Action] = $Handler;
         return $this;
     }
 }
