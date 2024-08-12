@@ -117,4 +117,22 @@ class RestfulAppTest extends TestCase
     {
         $this->testHandleRequestWithBody('PATCH');
     }
+
+    /**
+     * @covers \Lin\AppPhp\Server\RestfulApp::HandleRequest
+     * @covers \Lin\AppPhp\Server\RestfulApp::OnPatch
+     * @covers \Lin\AppPhp\Server\App::__construct
+     * @covers \Lin\AppPhp\Server\App::GetServerRequest
+     * @covers \Lin\AppPhp\Server\App::ParseContentByType
+     * @covers \Lin\AppPhp\Server\App::ParseJsonInput
+     * @covers \Lin\AppPhp\Server\App::ParsePHPInput
+     */
+    public function testHadleRequestOtherMethod()
+    {
+        $req = $this->createServerRequest('OTHER');
+        $res = $this->app->HandleRequest($req);
+        $this->assertInstanceOf(ServerRequestInterface::class, $req);
+        $this->assertInstanceOf(ResponseInterface::class, $res);
+        $this->assertEquals(405, $res->getStatusCode());
+    }
 }
