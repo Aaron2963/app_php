@@ -3,6 +3,8 @@
 namespace Lin\AppPhp\Server;
 
 use Lin\AppPhp\Authorization\AuthorizationInterface;
+use Psr\Http\Message\ResponseInterface;
+use Exception;
 
 class Router
 {
@@ -17,9 +19,9 @@ class Router
     protected array $PathParams = [];
 
     /**
-     * @var AuthorizationInterface $Authorization The meachanism to authorize the request, set by `Router::WithAuthorization` method
+     * @var ?AuthorizationInterface $Authorization The meachanism to authorize the request, set by `Router::WithAuthorization` method
      */
-    protected AuthorizationInterface $Authorization;
+    protected ?AuthorizationInterface $Authorization = null;
 
     /**
      * @var string $Root The root path of the router, which will be appended to the path of every route
@@ -45,25 +47,33 @@ class Router
      * @return void
      * 
      */
-    public function Run(string $RequestURI): void
+    public function Run(string $RequestURI, bool $Return = false): ?ResponseInterface
     {
         $Path = str_replace('//', '/', $RequestURI);
         $Creator = $this->ResolveRoute($this->Routes, $Path);
-        if (!isset($Creator[0])) {
-            http_response_code(404);
-            echo 'Not Found';
-            return;
+        $Response = App::JsonResponse(['message' => 'Not Found'], 404);
+        try {
+            if (!isset($Creator[0])) {
+                throw new Exception('Not Found', 404);
+            }
+            $Request = App::CreateServerRequest();
+            $Request = $Request->withAttribute('PathParams', $this->PathParams);
+            $App = $Creator[0];
+            if (!($App instanceof RestfulApp)) {
+                throw new Exception('Invalid request handler, must be instance of \Lin\AppPhp\Server\RestfulApp', 500);
+            }
+            if ($this->Authorization !== null) {
+                $App->WithAuthorization($this->Authorization);
+            }
+            $Response = $App->HandleRequest($Request);
+        } catch (Exception $e) {
+            $Response = App::JsonResponse(['message' => $e->getMessage()], $e->getCode());
         }
-        $Request = App::CreateServerRequest();
-        $Request = $Request->withAttribute('PathParams', $this->PathParams);
-        $App = $Creator[0];
-        if (!($App instanceof RestfulApp)) {
-            http_response_code(500);
-            return;
+        if ($Return) {
+            return $Response;
         }
-        $App->WithAuthorization($this->Authorization);
-        $App->HandleRequest($Request);
-        $App->SendResponse();
+        App::Send($Response);
+        return null;
     }
 
 
@@ -109,7 +119,7 @@ class Router
         }
         return $Route;
     }
-    
+
     /**
      * Add route to Router, with path and \Lin\AppPhp\Server\RestfulApp instance
      *
@@ -126,7 +136,7 @@ class Router
         $Parts = explode('/', $Path);
         $Route = &$this->Routes;
         foreach ($Parts as $Part) {
-            if (str_starts_with($Part, ':')) {
+            if (strpos($Part, ':') === 0) {
                 $Part = '*';
             }
             if (!isset($Route[$Part])) {
