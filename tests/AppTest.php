@@ -80,6 +80,24 @@ class AppTest extends TestCase
         // Create the multipart body
         $body = '';
         foreach ($data as $name => $value) {
+            if (is_array($value) && isset($value['tmp_name']['sub'])) {
+                $filename = basename($value['name']['sub']);
+                $contnent = file_get_contents($value['tmp_name']['sub']);
+                $body .= "--$boundary\r\n";
+                $body .= "Content-Disposition: form-data; name=\"{$name}[sub]\"; filename=\"$filename\"\r\n";
+                $body .= "Content-Type: " . mime_content_type($value['tmp_name']['sub']) . "\r\n\r\n";
+                $body .= $contnent . "\r\n";
+                continue;
+            }
+            if (is_array($value) && isset($value['tmp_name'])) {
+                $filename = basename($value['name']);
+                $contnent = file_get_contents($value['tmp_name']);
+                $body .= "--$boundary\r\n";
+                $body .= "Content-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\n";
+                $body .= "Content-Type: " . mime_content_type($value['tmp_name']) . "\r\n\r\n";
+                $body .= $contnent . "\r\n";
+                continue;
+            }
             $body .= "--$boundary\r\n";
             $body .= "Content-Disposition: form-data; name=\"$name\"\r\n\r\n";
             $body .= "$value\r\n";
@@ -254,8 +272,26 @@ class AppTest extends TestCase
      */
     public function testParseMultipartFormDataInput(): void
     {
+        $image = __DIR__ . '/asset/lorem.jpg';
+        $data = [
+            'name' => 'John Doe',
+            'image' => [
+                'name' => 'test-lorem.jpg',
+                'tmp_name' => $image,
+                'type' => 'image/jpeg',
+                'error' => 0,
+                'size' => filesize($image)
+            ],
+            'image-nested' => [
+                'name' => ['sub' => 'test-nested-lorem.jpg'],
+                'tmp_name' => ['sub' => $image],
+                'type' => ['sub' => 'image/jpeg'],
+                'error' => ['sub' => 0],
+                'size' => ['sub' => filesize($image)]
+            ]
+        ];
         $request = $this->GenerateServerRequest('POST');
-        $request = $this->withMultipartFormData($request, ['name' => 'John Doe']);
+        $request = $this->withMultipartFormData($request, $data);
         $app = new SampleApp();
         $app->handle($request);
         $this->assertEquals('John Doe', $app->GetServerRequest()->getParsedBody()['name']);
