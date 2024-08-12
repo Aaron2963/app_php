@@ -18,12 +18,10 @@ class CrudApp extends App
     public function HandleRequest(ServerRequestInterface $ServerRequest): ResponseInterface
     {
         $this->ServerRequest = $ServerRequest;
+        $this->RawBody = $ServerRequest->getBody()->getContents();
         if ($ServerRequest->getMethod() !== 'POST') {
             $this->Response = $this->Psr17Factory->createResponse(405);
             return $this->Response;
-        }
-        foreach (getallheaders() as $Name => $Value) {
-            $this->ServerRequest = $this->ServerRequest->withHeader($Name, $Value);
         }
         $Path = $this->ServerRequest->getUri()->getPath();
         $Path = explode('/', $Path);
