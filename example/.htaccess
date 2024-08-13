@@ -1,1 +1,10 @@
-php_flag enable_post_data_reading off
+RewriteEngine On
+RewriteBase /example/
+
+# Rewrite api/v1/* to /example/router.php
+RewriteRule ^api/v1/(.*)$ router.php [L,QSA]
+
+# Leave other requests unchanged
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ $1 [L]

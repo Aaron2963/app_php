@@ -6,7 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="keywords" content="" />
     <meta name="description" content="" />
-    <title>Document</title>
+    <title>Lins\AppPhp Example</title>
+    <style>
+        #response {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 1rem 2rem;
+            max-width: 500px;
+        }
+    </style>
 </head>
 <body>
     <h1>Example</h1>
@@ -15,5 +24,27 @@
         <li><a href="./restful_app.php">Restful App</a></li>
         <li><a href="./crud_app.html">CRUD App</a></li>
     </ul>
+    <hr>
+    <h2>Router Example</h2>
+    <ul>
+        <li><a href="#" onclick="requestRouter('GET')">GET: /api/v1/user</a></li>
+        <li><a href="#" onclick="requestRouter('POST')">POST: /api/v1/user --body {"name":"John Doe"}</a></li>
+    </ul>
+    <pre id="response"></pre>
+    <script>
+        const response = document.getElementById('response');
+        const host = window.location.origin;
+        async function requestRouter(method) {
+            const config = { method };
+            if (method === 'POST') {
+                config.headers = {
+                    'Content-Type': 'application/json',
+                };
+                config.body = JSON.stringify({ name: 'John Doe' });
+            }
+            const res = await fetch(host + '/example/api/v1/user', config);
+            response.innerHTML = await res.text();
+        }
+    </script>
 </body>
 </html>

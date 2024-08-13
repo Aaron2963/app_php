@@ -15,133 +15,21 @@ There are three types of supported PHP applications: **RESTful App**, **CRUD App
 
 To build RESTful App, extend the `Lin\AppPhp\Server\RestfulApp` class, and override the `OnGet|OnPost|OnPut|OnDelete|OnPatch` methods.
 
-```php
-require __DIR__ . '/vendor/autoload.php';
-
-use Lin\AppPhp\Server\App;
-use Lin\AppPhp\Server\RestfulApp;
-use Lin\AppPhp\Authorization\AuthorizationInterface;
-
-// 實作 AuthorizationInterface
-class Authorization implements AuthorizationInterface
-{
-    public function Authorize($Token, $RequestScopes = [])
-    {
-        $AvailableScopes = ['user.read', 'user.create'];
-        $AccessScopes = array_intersect($RequestScopes, $AvailableScopes);
-        if (count($RequestScopes) > 0 && count($AccessScopes) === 0) {
-            return false;
-        }
-        return true;
-    }
-}
-
-// create a class extending RestfulApp, and override method `OnGet|OnPost|OnPut|OnDelete|OnPatch`
-// unoverrided method will return `405 Method Not Allowed` response
-class User extends RestfulApp
-{
-    public function OnGet()
-    {
-        // 檢查權限: 呼叫 AuthorizationInterface::AuthorizeRequest
-        if (!$this->AuthorizeRequest(['user.read'])) {
-            return App::UnauthorizedResponse();
-        }
-        // 回應
-        return App::JsonResponse([
-            [
-                'id' => '1',
-                'name' => 'John Doe'
-            ],
-            [
-                'id' => '2',
-                'name' => 'Jane Doe'
-            ],
-        ]);
-    }
-
-    public function OnPost()
-    {
-        // 檢查權限: 呼叫 App::AuthorizeRequest
-        if (!$this->AuthorizeRequest(['user.create'])) {
-            return App::UnauthorizedResponse();
-        }
-        // 取得請求資料
-        $Data = $this->GetServerRequest()->getParsedBody();
-        if (!isset($Data['name'])) {
-            return App::JsonResponse(['message' => 'name is required'], 400);
-        }
-        // 儲存資料...
-        // 回應
-        return App::NoContentResponse();
-    }
-}
-
-// 處理請求
-$App = new User();
-$App->WithAuthorization(new Authorization())->HandleRequest(App::CreateServerRequest());
-$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
-$App->SendResponse();
-exit;
-```
+For detailed example, see [example/restful_app.php](example/restful_app.php).
 
 
 ### CRUD App
 
 To build CRUD App which only accept `POST` method and receive command from resource path, extend the `Lin\AppPhp\Server\CrudApp` class, and override the `OnCreate|OnRead|OnUpdate|OnDelete` methods.
 
-```php
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use Lin\AppPhp\Server\App;
-use Lin\AppPhp\Server\CrudApp;
-
-class User extends CrudApp
-{
-    public function OnRead()
-    {
-        return App::JsonResponse([
-            [
-                'id' => '1',
-                'name' => 'John Doe'
-            ],
-            [
-                'id' => '2',
-                'name' => 'Jane Doe'
-            ],
-        ]);
-    }
-}
-
-// 處理請求
-$App = new User();
-$App->HandleRequest(App::CreateServerRequest());
-$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
-$App->SendResponse();
-exit();
-```
+For detailed example, see [example/crud_app.html](example/crud_app.html) and [example/crud_app.select.php](example/crud_app.select.php).
 
 
 ### Single Page App
 
 To build single page app, instanciate the `Lin\AppPhp\Server\SinglePageApp` class, and pass the web page html code as string to the constructor, and call `AddPostAction` method to add actions for receiving post requests.
 
-```php
-require __DIR__ . '/vendor/autoload.php';
-
-use Lin\AppPhp\Server\App;
-use Lin\AppPhp\Server\SinglePageApp;
-
-$App = new SinglePageApp(file_get_contents('index.html'));
-$App->AddPostAction('message', function ($ServerRequest) {
-    $Message = $ServerRequest->getParsedBody()['message'];
-    return App::JsonResponse(['message' => $Message]);
-});
-
-$App->HandleRequest(App::CreateServerRequest());
-$App->AddHeaders(['Access-Control-Allow-Origin' => '*']);
-$App->SendResponse();
-exit();
-```
+For detailed example, see [example/single_page_example.html](example/single_page_example.html) and [example/single_page_app.php](example/single_page_app.php).
 
 
 ### Authorization
@@ -162,7 +50,7 @@ use Lin\AppPhp\Authorization\AuthorizationInterface;
 // 實作 AuthorizationInterface
 class Authorization implements AuthorizationInterface
 {
-    public function Authorize($Token, $RequestScopes = [])
+    public function Authorize($Token, $RequestScopes = []): bool
     {
         $AvailableScopes = ['user.read', 'user.create'];
         $AccessScopes = array_intersect($RequestScopes, $AvailableScopes);

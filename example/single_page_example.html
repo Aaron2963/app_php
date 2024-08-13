@@ -10,17 +10,17 @@
     </head>
     <body>
         <h1>Single Page App Example</h1>
-        <form method="post">
+        <form method="post" id="check-form">
             <input type="text" name="action" value="check-login" hidden />
             <button id="submit-check-login" type="submit">Check Login</button>
         </form>
         <br />
-        <form method="post">
+        <form method="post" id="greet-form">
             <input type="text" name="action" value="greet" hidden />
             <button id="submit-greet" type="submit">Greet</button>
         </form>
         <br />
-        <form method="post">
+        <form method="post" id="message-form">
             <input type="text" name="action" value="message" hidden />
             <input type="text" name="message" />
             <button id="submit-message" type="submit">Show Message</button>
@@ -29,21 +29,21 @@
         <div id="response"></div>
         <script>
             const response = document.getElementById('response');
-            document.getElementById('submit-greet').addEventListener('click', (e) => {
-                e.preventDefault();
-                fetch('./single_page_app.php', {
+            async function submit(ev) {
+                ev.preventDefault();
+                const res = await fetch('./single_page_app.php', {
                     method: 'POST',
-                    body: new FormData(e.target.form)
-                }).then((res) => res.json()).then((data) => response.innerHTML = data.message);
-            });
-            document.getElementById('submit-message').addEventListener('click', (e) => {
-                e.preventDefault();
-                fetch('./single_page_app.php', {
-                    method: 'POST',
-                    body: new FormData(e.target.form),
-                    headers: { Authorization: 'Bearer 1234567890' },
-                }).then((res) => res.json()).then((data) => response.innerHTML = data.message);
-            });
+                    headers: {
+                        'Authorization': 'Bearer abc123',
+                    },
+                    body: new FormData(ev.target),
+                })
+                const text = await res.text();
+                response.innerHTML = text;
+            }
+            document.getElementById('check-form').addEventListener('submit', submit);
+            document.getElementById('greet-form').addEventListener('submit', submit);
+            document.getElementById('message-form').addEventListener('submit', submit);
         </script>
     </body>
 </html>
