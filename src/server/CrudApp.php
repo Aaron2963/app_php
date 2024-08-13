@@ -30,7 +30,9 @@ class CrudApp extends App
         $Method = explode('.', $Resource);
         $Method = array_pop($Method);
         $Method = strtoupper($Method);
-        $this->ParsePHPInput();
+        if (empty($ServerRequest->getParsedBody())) {
+            $this->ParsePHPInput();
+        }
         // 處理請求
         switch ($Method) {
             case 'SELECT':

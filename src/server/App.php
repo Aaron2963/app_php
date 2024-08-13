@@ -102,7 +102,9 @@ abstract class App implements RequestHandlerInterface
     {
         $this->ServerRequest = $ServerRequest;
         $this->RawBody = $this->ServerRequest->getBody()->getContents();
-        $this->ParsePHPInput();
+        if (empty($ServerRequest->getParsedBody())) {
+            $this->ParsePHPInput();
+        }
         $this->Response = $this->HandleRequest($ServerRequest);
         return $this->Response;
     }

@@ -26,19 +26,27 @@ class RestfulApp extends App
                 $this->Response = $this->OnGet();
                 break;
             case 'POST':
-                $this->ParsePHPInput();
+                if (empty($ServerRequest->getParsedBody())) {
+                    $this->ParsePHPInput();
+                }
                 $this->Response = $this->OnPost();
                 break;
             case 'PUT':
-                $this->ParsePHPInput();
+                if (empty($ServerRequest->getParsedBody())) {
+                    $this->ParsePHPInput();
+                }
                 $this->Response = $this->OnPut();
                 break;
             case 'DELETE':
-                $this->ParsePHPInput();
+                if (empty($ServerRequest->getParsedBody())) {
+                    $this->ParsePHPInput();
+                }
                 $this->Response = $this->OnDelete();
                 break;
             case 'PATCH':
-                $this->ParsePHPInput();
+                if (empty($ServerRequest->getParsedBody())) {
+                    $this->ParsePHPInput();
+                }
                 $this->Response = $this->OnPatch();
                 break;
             default:
