@@ -63,7 +63,9 @@ class SinglePageApp extends App
                 $this->Response = $this->OnGet();
                 break;
             case 'POST':
-                $this->ParsePHPInput();
+                if (empty($this->ServerRequest->getParsedBody())) {
+                    $this->ParsePHPInput();
+                }
                 $this->Response = $this->OnPost();
                 break;
             default:

@@ -58,6 +58,8 @@ class RouterTest extends TestCase
      */
     public function testAddRouteAndRun()
     {
+        $_SERVER['REQUEST_URI'] = '/api/v1/user';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
         $router = new Router('/api/v1');
         $router->AddRoute('/user', $this->app);
         $router->AddRoute('/user/:id', $this->app);
