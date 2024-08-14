@@ -77,7 +77,12 @@ abstract class App implements RequestHandlerInterface
         );
         $_FILES = $_FILES ?? [];
         $Request = $Creator->fromGlobals();
-        return $Request->withParsedBody(self::ParseContentByType($Request->getBody()->getContents(), $Request->getHeader('Content-Type')[0] ?? ''));
+        $ParsedBody = self::ParseContentByType(
+            $Request->getBody()->getContents(),
+            $Request->getHeader('Content-Type')[0] ?? '',
+            $GLOBALS['_' . strtoupper($Request->getMethod())]
+        );
+        return $Request->withParsedBody($ParsedBody);
     }
 
     /**
@@ -263,37 +268,36 @@ abstract class App implements RequestHandlerInterface
         }
         $ContentType = $this->ServerRequest->getHeader('Content-Type')[0] ?? '';
         try {
-            $Data = self::ParseContentByType($this->RawBody, $ContentType);
+            $Data = self::ParseContentByType($this->RawBody, $ContentType, $GLOBALS['_' . $Method]);
         } catch (\Exception $e) {
             $Data = [];
         }
         $this->ServerRequest = $this->ServerRequest->withParsedBody($Data);
-        $GLOBALS['_' . $Method] = $Data;
     }
 
-    static public function ParseContentByType(string $Content, string $Type): array
+    static public function ParseContentByType(string $Content, string $Type, array &$Result = []): array
     {
         if (ini_get('enable_post_data_reading')) {
             trigger_error('php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.', E_USER_WARNING);
         }
         $Data = [];
         list($Type,) = explode(';', $Type);
-        if (empty($Type)) {
-            return $Data;
+        if (!empty($Type)) {
+            switch ($Type) {
+                case 'multipart/form-data':
+                    $Data = self::ParseMultipartFormDataInput($Content);
+                    break;
+                case 'application/json':
+                    $Data = self::ParseJsonInput($Content);
+                    break;
+                case 'application/x-www-form-urlencoded':
+                    $Data = self::ParseFormUrlencodedInput($Content);
+                    break;
+                default:
+                    throw new \RuntimeException('Unsupported Content-Type: ' . $Type);
+            }
         }
-        switch ($Type) {
-            case 'multipart/form-data':
-                $Data = self::ParseMultipartFormDataInput($Content);
-                break;
-            case 'application/json':
-                $Data = self::ParseJsonInput($Content);
-                break;
-            case 'application/x-www-form-urlencoded':
-                $Data = self::ParseFormUrlencodedInput($Content);
-                break;
-            default:
-                throw new \RuntimeException('Unsupported Content-Type: ' . $Type);
-        }
+        $Result = $Data;
         return $Data;
     }
 
