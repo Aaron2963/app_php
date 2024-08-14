@@ -36,19 +36,15 @@ class CrudApp extends App
         // 處理請求
         switch ($Method) {
             case 'SELECT':
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnRead();
                 break;
             case 'CREATE':
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnCreate();
                 break;
             case 'UPDATE':
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnUpdate();
                 break;
             case 'DELETE':
-                $this->ServerRequest = $this->ServerRequest->withParsedBody($_POST);
                 $this->Response = $this->OnDelete();
                 break;
             default:
