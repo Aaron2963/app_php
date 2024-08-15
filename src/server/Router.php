@@ -59,8 +59,8 @@ class Router
             $Request = App::CreateServerRequest();
             $Request = $Request->withAttribute('PathParams', $this->PathParams);
             $App = $Creator[0];
-            if (!($App instanceof RestfulApp)) {
-                throw new Exception('Invalid request handler, must be instance of \Lin\AppPhp\Server\RestfulApp', 500);
+            if (!($App instanceof App)) {
+                throw new Exception('Invalid request handler, must be instance of \Lin\AppPhp\Server\App', 500);
             }
             if ($this->Authorization !== null) {
                 $App->WithAuthorization($this->Authorization);
@@ -123,13 +123,13 @@ class Router
     /**
      * Add route to Router, with path and \Lin\AppPhp\Server\RestfulApp instance
      *
-     * @param  string       $Path   The path of the route, if the path contains `:` (eg. `/api/v1/user/:id`), it will be treated as a variable, and the value can be accessed in the App by `$this->ServerRequest->getAttribute('PathParams')`
-     * @param  RestfulApp   $App    The instance of \Lin\AppPhp\Server\RestfulApp handle the request
+     * @param  string   $Path   The path of the route, if the path contains `:` (eg. `/api/v1/user/:id`), it will be treated as a variable, and the value can be accessed in the App by `$this->ServerRequest->getAttribute('PathParams')`
+     * @param  App      $App    The instance of \Lin\AppPhp\Server\App handle the request
      * 
      * @return void
      * 
      */
-    public function AddRoute(string $Path, RestfulApp $App): void
+    public function AddRoute(string $Path, App $App): void
     {
         $Path = $this->Root . '/' . $Path;
         $Path = str_replace('//', '/', $Path);

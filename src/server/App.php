@@ -80,7 +80,7 @@ abstract class App implements RequestHandlerInterface
         $ParsedBody = self::ParseContentByType(
             $Request->getBody()->getContents(),
             $Request->getHeader('Content-Type')[0] ?? '',
-            $GLOBALS['_' . strtoupper($Request->getMethod())]
+            $Request->getMethod()
         );
         return $Request->withParsedBody($ParsedBody);
     }
@@ -268,14 +268,25 @@ abstract class App implements RequestHandlerInterface
         }
         $ContentType = $this->ServerRequest->getHeader('Content-Type')[0] ?? '';
         try {
-            $Data = self::ParseContentByType($this->RawBody, $ContentType, $GLOBALS['_' . $Method]);
+            $Data = self::ParseContentByType($this->RawBody, $ContentType, $Method);
         } catch (\Exception $e) {
             $Data = [];
         }
         $this->ServerRequest = $this->ServerRequest->withParsedBody($Data);
     }
-
-    static public function ParseContentByType(string $Content, string $Type, array &$Result = []): array
+        
+    /**
+     * Parse content by type, support `multipart/form-data`, `application/json`, `application/x-www-form-urlencoded`,
+     * put it into `$_POST|$_PUT|$_PATCH|$_DELETE` and `$_FILES`, and return the parsed data as array
+     *
+     * @param  string   $Content    raw content
+     * @param  string   $Type       Content-Type
+     * @param  string   $Method     HTTP method
+     * 
+     * @return array
+     * 
+     */
+    static public function ParseContentByType(string $Content, string $Type, string $Method): array
     {
         if (ini_get('enable_post_data_reading')) {
             trigger_error('php://input is not available in POST requests with enctype="multipart/form-data" if enable_post_data_reading option is enabled.', E_USER_WARNING);
@@ -297,7 +308,10 @@ abstract class App implements RequestHandlerInterface
                     throw new \RuntimeException('Unsupported Content-Type: ' . $Type);
             }
         }
-        $Result = $Data;
+        $Method = strtoupper($Method);
+        if ($Method !== 'GET') {
+            $GLOBALS['_' . $Method] = $Data;
+        }
         return $Data;
     }
 
