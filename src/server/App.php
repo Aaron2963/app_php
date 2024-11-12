@@ -274,7 +274,7 @@ abstract class App implements RequestHandlerInterface
         }
         $this->ServerRequest = $this->ServerRequest->withParsedBody($Data);
     }
-        
+
     /**
      * Parse content by type, support `multipart/form-data`, `application/json`, `application/x-www-form-urlencoded`,
      * put it into `$_POST|$_PUT|$_PATCH|$_DELETE` and `$_FILES`, and return the parsed data as array
@@ -370,9 +370,9 @@ abstract class App implements RequestHandlerInterface
             );
             $name = $matches[2];
 
-            //Parse File
+            // Parse File
             if (isset($matches[4])) {
-                //if labeled the same as previous, skip
+                // If labeled the same as previous, skip
                 if (isset($_FILES[$matches[2]])) {
                     continue;
                 }
@@ -381,13 +381,13 @@ abstract class App implements RequestHandlerInterface
                     $_FILES = array();
                 }
 
-                //get filename
-                $filename = $matches[4];
+                // Get filename and sanitize it
+                $filename = basename($matches[4]);
 
-                //get tmp name
+                // Get tmp name
                 $tmp_name = tempnam(ini_get('upload_tmp_dir'), 'app');
 
-                //populate $_FILES with information, size may be off in multibyte situation
+                // Populate $_FILES with information, size may be off in multibyte situation
                 $file_info = array(
                     'error' => 0,
                     'name' => $filename,
@@ -400,24 +400,27 @@ abstract class App implements RequestHandlerInterface
                         $keys = explode('[', $name);
                         array_splice($keys, 1, 0, $k . ']');
                         $sname = implode('[', $keys);
-                        $fileParams[] = "$sname=$v";
+                        $fileParams[] = "$sname=" . urlencode($v);
                     } else {
                         $_FILES[$name] = $file_info;
                         $sname = $name . '[' . $k . ']';
-                        $fileParams[] = "$sname=$v";
+                        $fileParams[] = "$sname=" . urlencode($v);
                     }
                 }
 
-                //place in temporary directory
+                // Place in temporary directory
                 file_put_contents($tmp_name, $body);
             } else {
-                //Parse Field
+                // Parse Field and URL-encode the value
                 $value = substr($body, 0, strlen($body) - 2);
-                $postParams[] = "$name=$value";
+                $postParams[] = urlencode($name) . "=" . urlencode($value);
             }
         }
+
+        // Safely build query strings and parse into $data and $_FILES
         $postParams = implode('&', $postParams);
         parse_str($postParams, $data);
+
         if (count($fileParams) > 0) {
             $fileParams = implode('&', $fileParams);
             parse_str($fileParams, $_FILES);
