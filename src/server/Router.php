@@ -67,7 +67,11 @@ class Router
             }
             $Response = $App->HandleRequest($Request);
         } catch (Exception $e) {
-            $Response = App::JsonResponse(['message' => $e->getMessage()], $e->getCode());
+            $Code = $e->getCode();
+            if (!is_int($Code) || $Code < 100 || $Code > 599) {
+                $Code = 500;
+            }
+            $Response = App::JsonResponse(['message' => $e->getMessage()], $Code);
         }
         if ($Return) {
             return $Response;
