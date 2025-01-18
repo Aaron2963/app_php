@@ -69,7 +69,7 @@ class Router
         } catch (Exception $e) {
             $Code = $e->getCode();
             if (!is_int($Code) || $Code < 100 || $Code > 599) {
-                $Code = 500;
+                $Code = 400;
             }
             $Response = App::JsonResponse(['message' => $e->getMessage()], $Code);
         }
